@@ -1123,6 +1123,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       templateLineId: decrypted.template_line_id,
       savingsGoalId: decrypted.savings_goal_id,
       assetId: decrypted.asset_id,
+      accountId: decrypted.account_id,
       spreadGroupId: decrypted.spread_group_id,
       savingsWithdrawalGroupId: decrypted.savings_withdrawal_group_id,
       name: decrypted.name,
@@ -1402,6 +1403,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       id: decrypted.id,
       budgetId: decrypted.budget_id,
       budgetLineId: decrypted.budget_line_id,
+      accountId: decrypted.account_id,
       name: decrypted.name,
       amount: decrypted.amount,
       originalAmount: decrypted.original_amount,
@@ -1467,7 +1469,8 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
   private toDeletionTransaction(
     transaction: SavingsGoalDeletionImpactRpc['budgets'][number]['lines'][number]['transactions'][number],
     dek: Buffer,
-  ): Transaction {
+    // The deletion-impact RPC does not project the account.
+  ): Omit<Transaction, 'accountId'> {
     return {
       ...transaction,
       amount: this.encryption.tryDecryptAmount(transaction.amount, dek, 0),

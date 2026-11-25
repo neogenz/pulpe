@@ -63,6 +63,7 @@ extension AddBudgetLineSheet {
                 // creating the real income, which is what debits the goal.
                 sourceSavingsGoalId: isPlannedWithdrawalMode ? sourceSavingsGoalId : nil,
                 assetId: linkedAssetId,
+                accountId: .some(accountId),
                 checkedAt: nil,
                 originalAmount: conversion?.originalAmount,
                 originalCurrency: conversion?.originalCurrency,
@@ -102,6 +103,7 @@ extension AddBudgetLineSheet {
                 recurrence: .fixed,
                 savingsGoalId: kind.savingsGoalLink(savingsGoalId),
                 assetId: linkedAssetId,
+                accountId: .some(accountId),
                 originalAmount: conversion?.originalAmount,
                 originalCurrency: conversion?.originalCurrency,
                 targetCurrency: conversion?.targetCurrency,
@@ -145,7 +147,8 @@ extension AddBudgetLineSheet {
                     conversion: conversion,
                     spreadGroupId: spreadGroupId,
                     savingsGoalId: savingsGoalId,
-                    assetId: assetId
+                    assetId: assetId,
+                    accountId: accountId
                 )
             )
 

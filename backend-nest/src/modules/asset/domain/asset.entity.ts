@@ -36,22 +36,45 @@ export interface AssetWithValue extends Asset {
   latestRecordedAt: string;
 }
 
-/**
- * A prévision of the user, linked to an asset and checked. `amount` is decrypted
- * and in the account currency, the one the totals are converted into.
- */
-export interface CheckedLinkedLine {
-  assetId: string;
-  kind: TransactionKind;
+/** A checked movement of a prévision: it counts through the prévision. */
+export interface CheckedReal {
   amount: number;
-  /** When it was checked: a debt applies its movements in this order. */
   checkedAt: string;
 }
 
-/** Lines are read when checked strictly after `since` (an ISO instant). */
-export interface CheckedLinesCutoff {
-  assetId: string;
-  since: string;
+/**
+ * A prévision linked to an asset, as its account (`accountId`) or as the asset
+ * it feeds, draws from or repays (`assetId`). `amount` is decrypted and in the
+ * budget currency, the one the totals are converted into, like the amounts of
+ * its checked movements. The movements of a prévision never carry an account
+ * of their own: they follow the prévision's.
+ */
+export interface MovementLine {
+  id: string;
+  kind: TransactionKind;
+  amount: number;
+  checkedAt: string | null;
+  accountId: string | null;
+  assetId: string | null;
+  checkedReals: CheckedReal[];
+}
+
+/** A checked movement outside any prévision, with an account. */
+export interface FreeMovement {
+  accountId: string;
+  kind: TransactionKind;
+  amount: number;
+  checkedAt: string;
+}
+
+/**
+ * What can move an asset after an instant: the linked prévisions checked after
+ * it or holding a movement checked after it, with all their checked movements,
+ * and the free movements checked after it.
+ */
+export interface AssetMovements {
+  lines: MovementLine[];
+  freeMovements: FreeMovement[];
 }
 
 export interface AssetCreateInput {

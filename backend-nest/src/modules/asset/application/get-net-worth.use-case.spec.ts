@@ -5,7 +5,11 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { UserRepositoryPort } from '@modules/user/domain/ports/user-repository.port';
 import type { AssetRepositoryPort } from '../domain/ports/asset-repository.port';
 import type { ExchangeRatePort } from '../domain/ports/exchange-rate.port';
-import type { AssetWithValue, CheckedLinkedLine } from '../domain/asset.entity';
+import type {
+  AssetMovements,
+  AssetWithValue,
+  FreeMovement,
+} from '../domain/asset.entity';
 import { GetNetWorthUseCase } from './get-net-worth.use-case';
 
 const user: AuthenticatedUser = {
@@ -37,8 +41,8 @@ function asset(
 
 describe('GetNetWorthUseCase', () => {
   let assets: AssetWithValue[];
-  let checkedLines: CheckedLinkedLine[];
-  let findCheckedLinkedLines: ReturnType<typeof jest.fn>;
+  let movements: AssetMovements;
+  let findMovementsSince: ReturnType<typeof jest.fn>;
   let baseCurrency: SupportedCurrency;
   let getRate: ReturnType<typeof jest.fn>;
   let logger: {
@@ -51,8 +55,8 @@ describe('GetNetWorthUseCase', () => {
 
   beforeEach(() => {
     assets = [];
-    checkedLines = [];
-    findCheckedLinkedLines = jest.fn(async () => checkedLines);
+    movements = { lines: [], freeMovements: [] };
+    findMovementsSince = jest.fn(async () => movements);
     baseCurrency = 'CHF';
     getRate = jest.fn();
     logger = {
@@ -64,7 +68,7 @@ describe('GetNetWorthUseCase', () => {
     const repo = {
       findAllCategories: jest.fn(async () => [category]),
       findAllWithLatestValue: jest.fn(async () => assets),
-      findCheckedLinkedLines,
+      findMovementsSince,
     } as unknown as AssetRepositoryPort;
     const userRepo = {
       findSettings: jest.fn(async () => ({ currency: baseCurrency })),
@@ -135,30 +139,30 @@ describe('GetNetWorthUseCase', () => {
     expect(logger.warn).toHaveBeenCalledTimes(1);
   });
 
-  describe('the value follows what is checked (PUL-377)', () => {
+  describe('the value follows what is checked (PUL-377, PUL-378)', () => {
     const checkedAt = '2026-11-05T10:00:00.000Z';
 
-    it('CA1: adds the checked Épargne to the last entry of the Livret', async () => {
-      assets = [asset('livret', 'CHF', 10_000)];
-      checkedLines = [
-        { assetId: 'livret', kind: 'saving', amount: 500, checkedAt },
-      ];
+    function revenu(accountId: string, amount: number): FreeMovement {
+      return { accountId, kind: 'income', amount, checkedAt };
+    }
+
+    it('PUL-378 CA6: a checked Revenu of 6 000 on the Compte courant brings it to 11 000', async () => {
+      assets = [asset('compte-courant', 'CHF', 5_000)];
+      movements.freeMovements = [revenu('compte-courant', 6_000)];
 
       const result = await useCase.execute(user);
 
       expect(result.assets[0]).toMatchObject({
-        value: 10_500,
-        recordedValue: 10_000,
-        convertedValue: 10_500,
+        value: 11_000,
+        recordedValue: 5_000,
+        convertedValue: 11_000,
       });
-      expect(result.totals.net).toBe(10_500);
+      expect(result.totals.net).toBe(11_000);
     });
 
-    it('CA14: converts a CHF prévision into a EUR asset at the rate of the day', async () => {
+    it('PUL-378 CA16: converts a CHF movement into a EUR account at the rate of the day', async () => {
       assets = [asset('eur', 'EUR', 1000)];
-      checkedLines = [
-        { assetId: 'eur', kind: 'saving', amount: 93, checkedAt },
-      ];
+      movements.freeMovements = [revenu('eur', 93)];
       getRate.mockResolvedValue(0.93);
 
       const result = await useCase.execute(user);
@@ -166,11 +170,9 @@ describe('GetNetWorthUseCase', () => {
       expect(result.assets[0]?.value).toBe(1100);
     });
 
-    it('CA14: keeps the last entry without a rate, whatever was checked', async () => {
+    it('PUL-378 CA16: keeps the last entry without a rate, whatever was checked', async () => {
       assets = [asset('eur', 'EUR', 1000)];
-      checkedLines = [
-        { assetId: 'eur', kind: 'saving', amount: 93, checkedAt },
-      ];
+      movements.freeMovements = [revenu('eur', 93)];
       getRate.mockRejectedValue(new Error('Currency API unavailable'));
 
       const result = await useCase.execute(user);
@@ -179,12 +181,20 @@ describe('GetNetWorthUseCase', () => {
       expect(result.totals.incomplete).toBe(true);
     });
 
-    it('CA16: a proposal still waiting for a click at go-live is simply the value', async () => {
+    it('PUL-377 CA16: a proposal still waiting for a click at go-live is simply the value', async () => {
       // Livret entered at 10 000 on 3 Nov; « Épargne mensuelle » (500) checked
       // on 5 Nov used to wait as « Je propose 10 500 ».
       assets = [asset('livret', 'CHF', 10_000)];
-      checkedLines = [
-        { assetId: 'livret', kind: 'saving', amount: 500, checkedAt },
+      movements.lines = [
+        {
+          id: 'epargne',
+          kind: 'saving',
+          amount: 500,
+          checkedAt,
+          accountId: null,
+          assetId: 'livret',
+          checkedReals: [],
+        },
       ];
 
       const result = await useCase.execute(user);
@@ -196,44 +206,36 @@ describe('GetNetWorthUseCase', () => {
       expect(result.totals.gross).toBe(10_500);
     });
 
-    it('CA17: after a dismissed proposal is converted, a later Épargne of 200 brings the Livret to 10 200', async () => {
-      // The migration copied the 10 000 entry, dated when I dismissed.
-      const dismissedAt = '2026-11-10T08:00:00.000Z';
+    it('reads what moved since the earliest last entry of the active assets', async () => {
       assets = [
-        { ...asset('livret', 'CHF', 10_000), latestRecordedAt: dismissedAt },
-      ];
-      checkedLines = [
         {
-          assetId: 'livret',
-          kind: 'saving',
-          amount: 200,
-          checkedAt: '2026-11-12T08:00:00.000Z',
+          ...asset('livret', 'CHF', 1),
+          latestRecordedAt: '2026-11-10T08:00:00.000Z',
         },
-      ];
-
-      const result = await useCase.execute(user);
-
-      // The 500 checked before the dismissal is before the cutoff: never asked for.
-      expect(findCheckedLinkedLines).toHaveBeenCalledWith([
-        { assetId: 'livret', since: dismissedAt },
-      ]);
-      expect(result.assets[0]).toMatchObject({
-        value: 10_200,
-        recordedValue: 10_000,
-      });
-    });
-
-    it('CA5: asks for the lines checked after the last entry of each active asset only', async () => {
-      assets = [
-        asset('active', 'CHF', 1),
-        { ...asset('old', 'CHF', 1), archivedAt: '2026-10-01T00:00:00.000Z' },
+        asset('compte-courant', 'CHF', 1),
+        {
+          ...asset('old', 'CHF', 1),
+          latestRecordedAt: '2026-01-01T00:00:00.000Z',
+          archivedAt: '2026-10-01T00:00:00.000Z',
+        },
       ];
 
       await useCase.execute(user);
 
-      expect(findCheckedLinkedLines).toHaveBeenCalledWith([
-        { assetId: 'active', since: '2026-11-03T10:00:00.000Z' },
-      ]);
+      expect(findMovementsSince).toHaveBeenCalledWith(
+        '2026-11-03T10:00:00.000Z',
+      );
+    });
+
+    it('reads no movement without an active asset', async () => {
+      assets = [
+        { ...asset('old', 'CHF', 900), archivedAt: '2026-10-01T00:00:00.000Z' },
+      ];
+
+      const result = await useCase.execute(user);
+
+      expect(findMovementsSince).not.toHaveBeenCalled();
+      expect(result.assets[0]?.value).toBe(900);
     });
   });
 });

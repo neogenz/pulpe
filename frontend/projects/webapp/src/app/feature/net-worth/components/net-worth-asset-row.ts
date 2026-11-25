@@ -19,7 +19,13 @@ import type { Asset, SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { formatEntryDate } from './entry-date';
 
-export type AssetRowAction = 'edit' | 'archive' | 'unarchive' | 'delete';
+export type AssetRowAction =
+  | 'edit'
+  | 'archive'
+  | 'unarchive'
+  | 'delete'
+  | 'setDefault'
+  | 'unsetDefault';
 
 export interface AssetRowEvent {
   asset: Asset;
@@ -72,6 +78,11 @@ const DAYS_PER_YEAR = 365;
           data-testid="asset-row-name"
           >{{ asset().name }}</span
         >
+        @if (isDefault()) {
+          <span class="chip chip-default" data-testid="asset-default-chip">{{
+            'netWorth.account.defaultBadge' | transloco
+          }}</span>
+        }
         @if (isOverdraft()) {
           <span class="chip chip-amber" data-testid="asset-overdraft-chip">{{
             'netWorth.overdraft' | transloco
@@ -165,6 +176,20 @@ const DAYS_PER_YEAR = 365;
           <mat-icon>edit</mat-icon>
           <span>{{ 'netWorth.menu.edit' | transloco }}</span>
         </button>
+        <!-- The default account of the budget: one at a time, set from here or from Réglages. -->
+        <button
+          mat-menu-item
+          (click)="emit(isDefault() ? 'unsetDefault' : 'setDefault')"
+          data-testid="asset-default-action"
+        >
+          <mat-icon>{{ isDefault() ? 'star' : 'star_border' }}</mat-icon>
+          <span>{{
+            (isDefault()
+              ? 'netWorth.menu.unsetDefault'
+              : 'netWorth.menu.setDefault'
+            ) | transloco
+          }}</span>
+        </button>
         <button
           mat-menu-item
           (click)="emit('archive')"
@@ -224,6 +249,10 @@ const DAYS_PER_YEAR = 365;
       font-size: 0.6875rem;
       font-weight: 600;
     }
+    .chip-default {
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+    }
     .chip-amber {
       background: var(--pulpe-amber-container);
       color: var(--pulpe-amber-on-container);
@@ -244,6 +273,8 @@ export class NetWorthAssetRow {
   readonly baseCurrency = input.required<SupportedCurrency>();
   /** Set on rows of the debts section, which name the category in their meta line. */
   readonly categoryName = input<string | null>(null);
+  /** The account new movements start on (CA47): shows the badge and flips the menu entry. */
+  readonly isDefault = input(false);
   readonly busy = input(false);
   readonly action = output<AssetRowEvent>();
 

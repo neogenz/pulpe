@@ -7,6 +7,8 @@ export interface TransactionApiSource {
   updatedAt: string;
   budgetId: string;
   budgetLineId: string | null;
+  /** Optionnel comme `tagIds` : les projections RPC ne le relisent pas toutes. */
+  accountId?: string | null;
   amount: number;
   name: string;
   kind: TransactionApi['kind'];
@@ -36,6 +38,7 @@ export function mapTransactionToApi(
     updatedAt: entity.updatedAt,
     budgetId: entity.budgetId,
     budgetLineId: entity.budgetLineId,
+    accountId: entity.accountId ?? null,
     amount: entity.amount,
     name: entity.name,
     kind: entity.kind,

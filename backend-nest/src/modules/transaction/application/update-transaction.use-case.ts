@@ -25,6 +25,15 @@ import type {
   TransactionUpdatePatch,
 } from '../domain/transaction.entity';
 
+/** Absent keeps the account (CA26); an allocated movement stores none (CA4). */
+function accountPatch(
+  accountId: string | null | undefined,
+  context: TransactionMutationContext | null,
+): Pick<TransactionUpdatePatch, 'accountId'> {
+  if (accountId === undefined || context?.budgetLineId) return {};
+  return { accountId };
+}
+
 @Injectable()
 export class UpdateTransactionUseCase {
   constructor(
@@ -57,6 +66,7 @@ export class UpdateTransactionUseCase {
     const withRate = await this.currencyService.overrideExchangeRate(dto);
 
     const patch: TransactionUpdatePatch = {
+      ...accountPatch(withRate.accountId, context),
       ...(withRate.amount !== undefined && { amount: withRate.amount }),
       ...(withRate.name !== undefined && { name: withRate.name }),
       ...(withRate.kind !== undefined && { kind: withRate.kind }),

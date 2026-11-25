@@ -6,7 +6,7 @@ import { buildAdjustmentPayload, buildComparison } from "./reconciliation";
 // `shared/src/calculators/account-reconciliation.spec.ts`.
 
 describe("buildAdjustmentPayload", () => {
-  it("writes one checked, free entry on the active budget", () => {
+  it("writes one checked, free entry on the active budget, with no account (CA44)", () => {
     const now = new Date("2026-10-02T09:30:00.000Z");
 
     expect(
@@ -23,6 +23,7 @@ describe("buildAdjustmentPayload", () => {
       kind: "expense",
       transactionDate: "2026-10-02T09:30:00.000Z",
       checkedAt: "2026-10-02T09:30:00.000Z",
+      accountId: null,
     });
   });
 });

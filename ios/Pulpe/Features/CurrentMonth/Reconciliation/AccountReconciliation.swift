@@ -102,7 +102,10 @@ enum AccountReconciliation {
             kind: kind,
             budgetLineId: nil,
             transactionDate: now,
-            checkedAt: now
+            checkedAt: now,
+            // The gap moves no account, whatever the default (CA44): the balances typed in the
+            // flow are what re-sync them.
+            accountId: .some(nil)
         )
     }
 

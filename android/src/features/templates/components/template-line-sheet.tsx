@@ -25,6 +25,9 @@ import { SegmentedPicker } from "@/core/ui/segmented-picker";
 import { FormModal } from "@/core/ui/sheet";
 import { SPACING } from "@/core/ui/theme";
 import { FieldError } from "@/core/ui/field-error";
+import { accountConflicts } from "@/features/net-worth/account-link";
+import { AccountField } from "@/features/net-worth/components/account-field";
+import { useAccountSelection } from "@/features/net-worth/use-account-selection";
 import type { MonthLedger } from "@/features/budget-details/month-impact";
 import { useSavingsGoals } from "@/features/savings-goals/goals-queries";
 
@@ -101,6 +104,10 @@ export function TemplateLineSheet({
   const [isPropagationVisible, setPropagationVisible] = useState(false);
 
   const isEditing = line !== undefined;
+  const account = useAccountSelection(line?.accountId ?? null, !isEditing);
+  // The element the line already feeds, repays or is drawn from (CA25).
+  const link = line?.kind === kind ? (line.assetId ?? null) : null;
+  const hasAccountConflict = accountConflicts(account.account, link);
   // The one asked last — starting either resets the other — so a failure
   // stays on screen once it lands. Keyed on `isPending` alone, a failed
   // "Appliquer" fell back to the untouched update and said nothing.
@@ -113,6 +120,7 @@ export function TemplateLineSheet({
     name.trim().length > 0 &&
     amount !== null &&
     amount > 0 &&
+    !hasAccountConflict &&
     !mutation.isPending;
   // The backend guards the same way: only a saving carries a goal.
   const goalLink = kind === "saving" ? savingsGoalId : null;
@@ -148,6 +156,7 @@ export function TemplateLineSheet({
           recurrence,
           description: "",
           savingsGoalId: goalLink,
+          ...account.create,
         },
         { onSuccess: () => succeed() },
       );
@@ -177,6 +186,7 @@ export function TemplateLineSheet({
           kind,
           recurrence,
           savingsGoalId: goalLink,
+          ...account.change,
         },
       },
       { onSuccess: () => succeed(), onError: leaveDialogOnError },
@@ -200,6 +210,7 @@ export function TemplateLineSheet({
               kind,
               recurrence,
               savingsGoalId: goalLink,
+              ...account.change,
             },
           ],
           propagateToBudgets: true,
@@ -263,6 +274,16 @@ export function TemplateLineSheet({
           onChangeText={setName}
           maxLength={NAME_MAX_LENGTH}
         />
+
+        {account.isOffered && (
+          <AccountField
+            choices={account.choices}
+            value={account.account}
+            onChange={account.setAccount}
+            link={link}
+            linkKind={kind}
+          />
+        )}
 
         <View style={styles.when}>
           <Text

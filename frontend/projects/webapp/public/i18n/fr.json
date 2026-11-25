@@ -1564,7 +1564,9 @@
       "edit": "Modifier",
       "archive": "Archiver",
       "unarchive": "Désarchiver",
-      "delete": "Supprimer"
+      "delete": "Supprimer",
+      "setDefault": "Utiliser par défaut dans le budget",
+      "unsetDefault": "Ne plus utiliser par défaut"
     },
     "type": {
       "menu": "Actions pour le type {{name}}",
@@ -1652,6 +1654,15 @@
       "updatedLongAgo": "Mis à jour il y a 2 mois",
       "updatedToday": "Mis à jour aujourd'hui",
       "budgetHint": "{{amount}} mis de côté et pointé dans ton budget → +{{amount}} ici."
+    },
+    "account": {
+      "label": "Compte",
+      "groupOwn": "Ce que j'ai",
+      "groupOwe": "Ce que je dois",
+      "sameAsLink": "Choisis un autre compte : celui-ci est déjà l'élément lié ci-dessus.",
+      "defaultLabel": "Compte par défaut",
+      "defaultHint": "Chaque nouvelle saisie démarre sur ce compte. Tu peux le changer à chaque fois.",
+      "defaultBadge": "Par défaut"
     }
   },
   "completeProfile": {

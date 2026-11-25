@@ -17,6 +17,7 @@ import type {
   SpreadDeleteSource,
   SpreadSourceLine,
 } from '../domain/budget-line.entity';
+import { USER_REPOSITORY } from '@modules/user/domain/ports/user-repository.port';
 
 const mockUser: AuthenticatedUser = {
   id: 'user-1',
@@ -44,6 +45,7 @@ const makeSource = (
   savingsWithdrawalGroupId: null,
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   ...overrides,
 });
 
@@ -57,6 +59,7 @@ const makeLine = (
   templateLineId: null,
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   tagIds: [],
   spreadGroupId,
   savingsWithdrawalGroupId: null,
@@ -162,6 +165,15 @@ describe('SpreadBudgetLineFromLineUseCase', () => {
       providers: [
         SpreadBudgetLineFromLineUseCase,
         CreateBudgetLineSpreadUseCase,
+        // A spread takes its source's account, never the default one.
+        {
+          provide: USER_REPOSITORY,
+          useValue: {
+            findDefaultAccountId: jest
+              .fn()
+              .mockResolvedValue('99999999-9999-4999-8999-999999999999'),
+          },
+        },
         {
           provide: BUDGET_LINE_SPREAD_PORT,
           useExisting: CreateBudgetLineSpreadUseCase,
@@ -437,6 +449,29 @@ describe('SpreadBudgetLineFromLineUseCase', () => {
     expect(captured[0].inputs.map((input) => input.assetId)).toEqual([
       assetId,
       assetId,
+    ]);
+  });
+
+  it('CA23: every tranche takes the account of the spread prévision', async () => {
+    const revolutId = '8a0f6c80-1234-4e5f-89ab-555555555555';
+    mockRepo.findSpreadSource.mockResolvedValue(
+      makeSource({ accountId: revolutId }),
+    );
+
+    await useCase.execute(
+      'line-source',
+      {
+        periods: [
+          { year: 2026, month: 1 },
+          { year: 2026, month: 2 },
+        ],
+      },
+      mockUser,
+    );
+
+    expect(captured[0].inputs.map((input) => input.accountId)).toEqual([
+      revolutId,
+      revolutId,
     ]);
   });
 

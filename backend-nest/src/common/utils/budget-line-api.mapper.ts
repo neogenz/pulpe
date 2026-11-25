@@ -10,6 +10,8 @@ export interface BudgetLineApiSource {
   templateLineId: string | null;
   savingsGoalId: string | null;
   assetId: string | null;
+  /** Optionnel : les projections RPC ne le relisent pas toutes. */
+  accountId?: string | null;
   spreadGroupId: string | null;
   savingsWithdrawalGroupId: string | null;
   /**
@@ -61,6 +63,7 @@ export function mapBudgetLineToApi(entity: BudgetLineApiSource): BudgetLineApi {
     templateLineId: entity.templateLineId,
     savingsGoalId: entity.savingsGoalId,
     assetId: entity.assetId,
+    accountId: entity.accountId ?? null,
     spreadGroupId: entity.spreadGroupId,
     savingsWithdrawalGroupId: entity.savingsWithdrawalGroupId,
     sourceSavingsGoalId: entity.sourceSavingsGoalId ?? null,

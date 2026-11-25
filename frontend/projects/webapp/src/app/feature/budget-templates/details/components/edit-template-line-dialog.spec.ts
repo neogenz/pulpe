@@ -4,7 +4,14 @@ import {
   signal,
   type Provider,
 } from '@angular/core';
-import { Subject } from 'rxjs';
+import { of, Subject } from 'rxjs';
+import {
+  COMPTE_COURANT,
+  LIVRET,
+  REVOLUT,
+  TICKET_ASSETS,
+  netWorthResponse,
+} from '@app/testing/net-worth-fixtures';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -41,6 +48,7 @@ interface SetupOptions {
   line?: TemplateLine;
   templateName?: string;
   providers?: Provider[];
+  defaultAccountId?: string | null;
 }
 
 function setup(options: SetupOptions = {}): {
@@ -59,6 +67,9 @@ function setup(options: SetupOptions = {}): {
   const mockUserSettings = {
     currency: signal('CHF' as const),
     settings: signal(null),
+    showCurrencySelector: signal(false),
+    locale: signal('fr' as const),
+    defaultAccountId: signal<string | null>(options.defaultAccountId ?? null),
   };
 
   const data: EditTemplateLineDialogData = {
@@ -562,5 +573,131 @@ describe('EditTemplateLineDialog — asset link', () => {
     expect(direction()).toBe('owe');
     component['model'].update((m) => ({ ...m, kind: 'income' }));
     expect(direction()).toBeNull();
+  });
+});
+
+describe('EditTemplateLineDialog — account field (PUL-378)', () => {
+  beforeEach(() => TestBed.resetTestingModule());
+
+  const withTicketAssets = (isEnabled: boolean): Provider[] => {
+    const postHog = createMockPostHogService();
+    postHog.isFeatureEnabled.mockReturnValue(isEnabled);
+    return [
+      { provide: PostHogService, useValue: postHog },
+      {
+        provide: AssetApi,
+        useValue: {
+          cache: createMockDataCache(),
+          getNetWorth$: () => of(netWorthResponse(TICKET_ASSETS)),
+        },
+      },
+    ];
+  };
+  const open = async (options: SetupOptions, isEnabled = true) => {
+    const context = setup({
+      ...options,
+      providers: withTicketAssets(isEnabled),
+    });
+    context.converter.convertWithMetadata.mockResolvedValue({
+      convertedAmount: 1500,
+      metadata: null,
+    });
+    context.fixture.detectChanges();
+    await context.fixture.whenStable();
+    context.fixture.detectChanges();
+    return context;
+  };
+  const fillAndSubmit = async (
+    context: Awaited<ReturnType<typeof open>>,
+  ): Promise<TemplateLineFormInput> => {
+    context.component['model'].update((m) => ({
+      ...m,
+      name: 'Loyer',
+      money: { amount: 1500, inputCurrency: 'CHF' },
+    }));
+    await context.component.handleSubmit();
+    return context.dialogRef.close.mock.calls.at(-1)![0];
+  };
+
+  it('CA1, CA3: a new line shows « Compte » on « Aucun » and sends the null', async () => {
+    const context = await open({});
+
+    expect(
+      context.fixture.nativeElement.querySelector(
+        'pulpe-account-picker-field mat-select',
+      ),
+    ).not.toBeNull();
+    expect((await fillAndSubmit(context)).accountId).toBeNull();
+  });
+
+  it('CA29: a new line starts on the default account', async () => {
+    const context = await open({ defaultAccountId: COMPTE_COURANT.id });
+
+    expect((await fillAndSubmit(context)).accountId).toBe(COMPTE_COURANT.id);
+  });
+
+  it('CA30: an existing line keeps its own account, never the default', async () => {
+    const context = await open({
+      line: { ...baseLine, accountId: REVOLUT.id },
+      defaultAccountId: COMPTE_COURANT.id,
+    });
+
+    expect(context.component['model']().accountId).toBe(REVOLUT.id);
+    expect((await fillAndSubmit(context)).accountId).toBe(REVOLUT.id);
+  });
+
+  it('CA2, CA26: flag off, an edit sends no accountId and the field is absent', async () => {
+    const context = await open(
+      { line: { ...baseLine, accountId: REVOLUT.id } },
+      false,
+    );
+
+    expect(
+      context.fixture.nativeElement.querySelector(
+        'pulpe-account-picker-field mat-select',
+      ),
+    ).toBeNull();
+    expect(await fillAndSubmit(context)).not.toHaveProperty('accountId');
+  });
+
+  it('CA25: blocks saving when « Compte » and « Versée sur » are the same item', async () => {
+    const context = await open({
+      line: {
+        ...baseLine,
+        kind: 'saving',
+        assetId: LIVRET.id,
+        accountId: LIVRET.id,
+      },
+    });
+
+    expect(context.component['accountErrorKey']()).toBe(
+      'netWorth.account.sameAsLink',
+    );
+    expect(context.component['canSubmit']()).toBe(false);
+  });
+
+  it('CA25: on a new line, an account picked by hand stays when the link takes it', async () => {
+    const context = await open({});
+    context.component['model'].update((m) => ({
+      ...m,
+      kind: 'saving',
+      accountId: LIVRET.id,
+    }));
+
+    context.component['setAssetLink'](LIVRET.id);
+
+    expect(context.component['model']().accountId).toBe(LIVRET.id);
+    expect(context.component['accountErrorKey']()).toBe(
+      'netWorth.account.sameAsLink',
+    );
+  });
+
+  it('CA45: on a new line, choosing the prefilled account as the link frees « Compte »', async () => {
+    const context = await open({ defaultAccountId: LIVRET.id });
+    context.component['model'].update((m) => ({ ...m, kind: 'saving' }));
+
+    context.component['setAssetLink'](LIVRET.id);
+
+    expect(context.component['model']().accountId).toBeNull();
   });
 });

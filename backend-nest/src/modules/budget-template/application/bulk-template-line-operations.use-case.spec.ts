@@ -22,6 +22,7 @@ const makeTemplateLine = (id: string): TemplateLine => ({
   templateId: 'template-1',
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   name: 'Salaire',
   amount: 5000,
   originalAmount: null,
@@ -370,6 +371,67 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
         mockRepo.bulkApplyTemplateLineOperations.mock.calls[0][0]
           .createdLines[0].assetId,
       ).toBe(assetId);
+    });
+  });
+
+  describe('account (PUL-378)', () => {
+    const lineId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
+    const compteCourantId = '8a0f6c80-1234-4e5f-89ab-555555555555';
+    const sentLines = () =>
+      mockRepo.bulkApplyTemplateLineOperations.mock.calls[0][0];
+
+    it('CA22: hands a changed account to the propagating RPC, kept across a kind change', async () => {
+      await useCase.execute(
+        'template-1',
+        {
+          update: [{ id: lineId, accountId: compteCourantId }],
+          create: [],
+          delete: [],
+          propagateToBudgets: false,
+        },
+        mockUser,
+      );
+
+      expect(sentLines().updatedLines[0].accountId).toBe(compteCourantId);
+    });
+
+    it('CA26: an update without the account leaves the key out', async () => {
+      await useCase.execute(
+        'template-1',
+        {
+          update: [{ id: lineId, kind: 'expense' }],
+          create: [],
+          delete: [],
+          propagateToBudgets: false,
+        },
+        mockUser,
+      );
+
+      expect(sentLines().updatedLines[0]).not.toHaveProperty('accountId');
+    });
+
+    it('passes the account of a created line through', async () => {
+      await useCase.execute(
+        'template-1',
+        {
+          update: [],
+          create: [
+            {
+              name: 'Loyer',
+              amount: 1500,
+              kind: 'expense',
+              recurrence: 'fixed',
+              description: '',
+              accountId: compteCourantId,
+            },
+          ],
+          delete: [],
+          propagateToBudgets: false,
+        },
+        mockUser,
+      );
+
+      expect(sentLines().createdLines[0].accountId).toBe(compteCourantId);
     });
   });
 

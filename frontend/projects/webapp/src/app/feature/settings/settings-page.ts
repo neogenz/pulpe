@@ -37,6 +37,7 @@ import {
 } from '@ui/dialogs/recovery-key-dialog';
 import { LanguageSelector } from '@ui/language-selector';
 import { LanguageService } from '@core/i18n/language.service';
+import { AccountPickerField } from '@pattern/account-picker/account-picker-field';
 import { CurrencyConverterWidget } from '@pattern/currency-converter-widget';
 import {
   ANALYTICS_EVENTS,
@@ -58,6 +59,7 @@ import { SettingsDialogService } from './settings-dialog.service';
   selector: 'pulpe-settings-page',
   imports: [
     CurrencyConverterWidget,
+    AccountPickerField,
     MatButtonModule,
     MatButtonToggleModule,
     MatDialogModule,
@@ -243,6 +245,14 @@ import { SettingsDialogService } from './settings-dialog.service';
               </div>
             }
           </div>
+          <!-- Saved on pick, like the language: kept out of the draft that « Annuler » resets. -->
+          <pulpe-account-picker-field
+            class="border-t border-outline-variant pt-6"
+            labelKey="netWorth.account.defaultLabel"
+            hintKey="netWorth.account.defaultHint"
+            [value]="defaultAccountId()"
+            (valueChanged)="onDefaultAccountChange($event)"
+          />
           <!-- Language -->
           <div class="flex flex-col gap-2 border-t border-outline-variant pt-6">
             <pulpe-language-selector
@@ -602,6 +612,26 @@ export default class SettingsPage {
     if (this.isChangingLanguage()) return;
     this.isChangingLanguage.set(true);
     await this.#language.change(value, 'settings');
+  }
+
+  readonly defaultAccountId = this.#userSettingsStore.defaultAccountId;
+
+  async onDefaultAccountChange(accountId: string | null): Promise<void> {
+    try {
+      await this.#userSettingsStore.setDefaultAccount(accountId);
+      this.#notifySaved('settings.saveSuccess', 3000);
+    } catch (error) {
+      this.#logger.error('Failed to save default account', error);
+      this.#notifySaved('settings.saveError', 5000);
+    }
+  }
+
+  #notifySaved(messageKey: string, duration: number): void {
+    this.#snackBar.open(this.#transloco.translate(messageKey), 'OK', {
+      duration,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+    });
   }
 
   openTagCatalog(): void {

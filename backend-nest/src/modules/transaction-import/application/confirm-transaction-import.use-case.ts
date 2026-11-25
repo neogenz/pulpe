@@ -9,6 +9,10 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { CacheService } from '@modules/cache/cache.service';
 import {
+  USER_REPOSITORY,
+  type UserRepositoryPort,
+} from '@modules/user/domain/ports/user-repository.port';
+import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
 } from '@modules/budget/domain/ports/budget-recalculation.port';
@@ -16,6 +20,7 @@ import {
   TRANSACTION_IMPORT_REPOSITORY,
   type TransactionImportRepositoryPort,
 } from '../domain/ports/transaction-import-repository.port';
+import type { PlannedImport } from '../domain/transaction-import.entity';
 import { planImport } from '../domain/transaction-import.matching';
 import { TransactionImportAnalyzer } from './transaction-import-analyzer';
 
@@ -36,6 +41,8 @@ export class ConfirmTransactionImportUseCase {
     private readonly cacheService: CacheService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepositoryPort,
     @InjectInfoLogger(ConfirmTransactionImportUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -92,7 +99,7 @@ export class ConfirmTransactionImportUseCase {
       return { createdCount: 0, attachedCount: 0, skippedCount };
     }
 
-    await this.repo.insertAll(budgetId, planned);
+    await this.insertAll(budgetId, planned);
     // Before the recalculation: if it fails, no cached list may hide the rows.
     await this.cacheService.invalidateForUser(user.id);
 
@@ -128,5 +135,17 @@ export class ConfirmTransactionImportUseCase {
     );
 
     return { createdCount: planned.length, attachedCount, skippedCount };
+  }
+
+  /** CA32: a bank import never names an account, free Réels take the default. */
+  private async insertAll(
+    budgetId: string,
+    planned: readonly PlannedImport[],
+  ): Promise<void> {
+    const hasFree = planned.some((entry) => entry.budgetLineId === null);
+    const defaultAccountId = hasFree
+      ? await this.userRepo.findDefaultAccountId()
+      : null;
+    await this.repo.insertAll(budgetId, planned, defaultAccountId);
   }
 }

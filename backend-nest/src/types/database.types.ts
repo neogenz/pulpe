@@ -142,6 +142,7 @@ export type Database = {
       }
       budget_line: {
         Row: {
+          account_id: string | null
           amount: string | null
           asset_id: string | null
           budget_id: string
@@ -166,6 +167,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
           amount?: string | null
           asset_id?: string | null
           budget_id: string
@@ -190,6 +192,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
           amount?: string | null
           asset_id?: string | null
           budget_id?: string
@@ -214,6 +217,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "budget_line_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "budget_line_asset_id_fkey"
             columns: ["asset_id"]
@@ -678,6 +688,7 @@ export type Database = {
       }
       template_line: {
         Row: {
+          account_id: string | null
           amount: string | null
           asset_id: string | null
           created_at: string
@@ -695,6 +706,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
           amount?: string | null
           asset_id?: string | null
           created_at?: string
@@ -712,6 +724,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
           amount?: string | null
           asset_id?: string | null
           created_at?: string
@@ -729,6 +742,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "template_line_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "template_line_asset_id_fkey"
             columns: ["asset_id"]
@@ -787,6 +807,7 @@ export type Database = {
       }
       transaction: {
         Row: {
+          account_id: string | null
           amount: string | null
           budget_id: string
           budget_line_id: string | null
@@ -806,6 +827,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
           amount?: string | null
           budget_id: string
           budget_line_id?: string | null
@@ -825,6 +847,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
           amount?: string | null
           budget_id?: string
           budget_line_id?: string | null
@@ -844,6 +867,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transaction_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transaction_budget_id_fkey"
             columns: ["budget_id"]
@@ -923,6 +953,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transaction"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_default_account: {
+        Row: {
+          asset_id: string
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_default_account_asset_id_user_id_fkey"
+            columns: ["asset_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id", "user_id"]
           },
         ]
       }
@@ -1093,6 +1152,7 @@ export type Database = {
           p_plan_withdrawals?: Json
         }
         Returns: {
+          account_id: string | null
           amount: string | null
           asset_id: string | null
           budget_id: string
@@ -1131,6 +1191,7 @@ export type Database = {
           p_plan_withdrawals?: Json
         }
         Returns: {
+          account_id: string | null
           amount: string | null
           asset_id: string | null
           budget_id: string
@@ -1216,6 +1277,7 @@ export type Database = {
       check_unchecked_transactions: {
         Args: { p_budget_line_id: string }
         Returns: {
+          account_id: string | null
           amount: string | null
           budget_id: string
           budget_line_id: string | null
@@ -1289,6 +1351,7 @@ export type Database = {
           p_spread_group_id: string
         }
         Returns: {
+          account_id: string | null
           amount: string | null
           asset_id: string | null
           budget_id: string
@@ -1336,6 +1399,7 @@ export type Database = {
           p_transaction: Json
         }
         Returns: {
+          account_id: string | null
           amount: string | null
           budget_id: string
           budget_line_id: string | null
@@ -1389,6 +1453,19 @@ export type Database = {
       get_savings_goal_deletion_impact: {
         Args: { p_goal_id: string }
         Returns: Json
+      }
+      list_asset_movements: {
+        Args: { p_since: string }
+        Returns: {
+          account_id: string
+          amount: string
+          asset_id: string
+          budget_line_id: string
+          checked_at: string
+          id: string
+          kind: Database["public"]["Enums"]["transaction_kind"]
+          movement: string
+        }[]
       }
       lock_savings_goal_for_withdrawal: {
         Args: { p_expected_revision: number; p_goal_id: string }
@@ -1525,6 +1602,7 @@ export type Database = {
       toggle_budget_line_check: {
         Args: { p_budget_line_id: string }
         Returns: {
+          account_id: string | null
           amount: string | null
           asset_id: string | null
           budget_id: string
@@ -1558,6 +1636,7 @@ export type Database = {
       toggle_transaction_check: {
         Args: { p_transaction_id: string }
         Returns: {
+          account_id: string | null
           amount: string | null
           budget_id: string
           budget_line_id: string | null
@@ -1586,6 +1665,7 @@ export type Database = {
       update_budget_line_with_tags: {
         Args: { p_budget_line_id: string; p_patch: Json; p_tag_ids: string[] }
         Returns: {
+          account_id: string | null
           amount: string | null
           asset_id: string | null
           budget_id: string
@@ -1624,6 +1704,7 @@ export type Database = {
           p_transaction_id: string
         }
         Returns: {
+          account_id: string | null
           amount: string | null
           budget_id: string
           budget_line_id: string | null
@@ -1652,6 +1733,7 @@ export type Database = {
       update_template_line_with_tags: {
         Args: { p_patch: Json; p_tag_ids: string[]; p_template_line_id: string }
         Returns: {
+          account_id: string | null
           amount: string | null
           asset_id: string | null
           created_at: string
@@ -1678,6 +1760,7 @@ export type Database = {
       update_transaction_with_tags: {
         Args: { p_patch: Json; p_tag_ids: string[]; p_transaction_id: string }
         Returns: {
+          account_id: string | null
           amount: string | null
           budget_id: string
           budget_line_id: string | null

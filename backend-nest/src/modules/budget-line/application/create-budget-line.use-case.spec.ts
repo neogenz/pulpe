@@ -6,6 +6,7 @@ import { BUDGET_LINE_REPOSITORY } from '../domain/ports/budget-line-repository.p
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
+import { USER_REPOSITORY } from '@modules/user/domain/ports/user-repository.port';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { BudgetLineCreate } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -17,6 +18,7 @@ const mockEntity: BudgetLine = {
   templateLineId: null,
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
@@ -49,6 +51,7 @@ describe('CreateBudgetLineUseCase', () => {
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
   let mockCurrency: { overrideExchangeRate: ReturnType<typeof jest.fn> };
   let mockBudget: { recalculate: ReturnType<typeof jest.fn> };
+  let mockUserRepo: { findDefaultAccountId: ReturnType<typeof jest.fn> };
 
   beforeEach(async () => {
     mockRepo = {
@@ -61,6 +64,7 @@ describe('CreateBudgetLineUseCase', () => {
     mockBudget = {
       recalculate: jest.fn().mockResolvedValue(undefined),
     };
+    mockUserRepo = { findDefaultAccountId: jest.fn().mockResolvedValue(null) };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -69,6 +73,7 @@ describe('CreateBudgetLineUseCase', () => {
         { provide: CacheService, useValue: mockCache },
         { provide: CurrencyService, useValue: mockCurrency },
         { provide: BUDGET_RECALCULATION_PORT, useValue: mockBudget },
+        { provide: USER_REPOSITORY, useValue: mockUserRepo },
         {
           provide: `INFO_LOGGER:${CreateBudgetLineUseCase.name}`,
           useValue: {
@@ -124,6 +129,87 @@ describe('CreateBudgetLineUseCase', () => {
     expect(mockRepo.insert).toHaveBeenCalledWith(
       expect.objectContaining({ assetId }),
     );
+  });
+
+  it('should hand the account to the repository, none when absent', async () => {
+    const compteCourantId = '8a0f6c80-1234-4e5f-89ab-555555555555';
+    const dto = {
+      budgetId: '123e4567-e89b-12d3-a456-426614174001',
+      name: 'Loyer',
+      amount: 1500,
+      kind: 'expense' as const,
+      recurrence: 'fixed' as const,
+      isManuallyAdjusted: false,
+    };
+
+    await useCase.execute({ ...dto, accountId: compteCourantId }, mockUser);
+    await useCase.execute(dto, mockUser);
+
+    expect(mockRepo.insert.mock.calls[0][0].accountId).toBe(compteCourantId);
+    expect(mockRepo.insert.mock.calls[1][0].accountId).toBeNull();
+  });
+
+  describe('default account (PUL-378)', () => {
+    const compteCourantId = '8a0f6c80-1234-4e5f-89ab-555555555555';
+    const livretId = '8a0f6c80-1234-4e5f-89ab-666666666666';
+    const base = {
+      budgetId: '123e4567-e89b-12d3-a456-426614174001',
+      recurrence: 'fixed' as const,
+      isManuallyAdjusted: false,
+    };
+
+    it('CA32, CA36: « Loyer » 1 500 and « Salaire » 6 000 created without account take the Compte courant', async () => {
+      mockUserRepo.findDefaultAccountId.mockResolvedValue(compteCourantId);
+
+      await useCase.execute(
+        { ...base, name: 'Loyer', amount: 1500, kind: 'expense' },
+        mockUser,
+      );
+      await useCase.execute(
+        { ...base, name: 'Salaire', amount: 6000, kind: 'income' },
+        mockUser,
+      );
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBe(compteCourantId);
+      expect(mockRepo.insert.mock.calls[1][0].accountId).toBe(compteCourantId);
+    });
+
+    it('CA32: a prévision created with « Aucun » stays without account', async () => {
+      mockUserRepo.findDefaultAccountId.mockResolvedValue(compteCourantId);
+
+      await useCase.execute(
+        {
+          ...base,
+          name: 'Loyer',
+          amount: 1500,
+          kind: 'expense',
+          accountId: null,
+        },
+        mockUser,
+      );
+
+      expect(mockRepo.insert.mock.calls[0][0].accountId).toBeNull();
+      expect(mockUserRepo.findDefaultAccountId).not.toHaveBeenCalled();
+    });
+
+    it('CA45: Livret by default, an Épargne 500 « Versée sur » Livret without account is accepted without one', async () => {
+      mockUserRepo.findDefaultAccountId.mockResolvedValue(livretId);
+
+      await useCase.execute(
+        {
+          ...base,
+          name: 'Épargne mensuelle',
+          amount: 500,
+          kind: 'saving',
+          assetId: livretId,
+        },
+        mockUser,
+      );
+
+      const input = mockRepo.insert.mock.calls[0][0];
+      expect(input.assetId).toBe(livretId);
+      expect(input.accountId).toBeNull();
+    });
   });
 
   it('should date a line created checked with the server clock, not the client one', async () => {

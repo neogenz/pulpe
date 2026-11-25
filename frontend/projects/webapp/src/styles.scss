@@ -544,3 +544,9 @@ body.amounts-hidden .ph-no-capture:not(.amounts-visible) {
 body.amounts-hidden mat-form-field.ph-no-capture:not(.amounts-visible) {
   pointer-events: auto;
 }
+
+// Opened upward at the foot of a bottom sheet, a select panel would cover its
+// own floating label; the gap keeps it off the field.
+.pulpe-account-select-panel {
+  margin-bottom: 14px;
+}

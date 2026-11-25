@@ -32,6 +32,7 @@ struct EditTemplateLineSheet: View {
     @State private var recurrence: TransactionRecurrence
     @State private var savingsGoalId: String?
     @State private var assetId: String?
+    @State private var accountId: String?
     @State private var selectedTagIds: Set<String>
     @State var isLoading = false
     @State var error: Error?
@@ -69,6 +70,7 @@ struct EditTemplateLineSheet: View {
         _recurrence = State(initialValue: templateLine.recurrence)
         _savingsGoalId = State(initialValue: templateLine.savingsGoalId)
         _assetId = State(initialValue: templateLine.assetId)
+        _accountId = State(initialValue: templateLine.accountId)
         let tagIds = Set(templateLine.tagIds ?? [])
         _selectedTagIds = State(initialValue: tagIds)
         initialTagIds = tagIds
@@ -88,6 +90,7 @@ struct EditTemplateLineSheet: View {
     private var canSubmit: Bool {
         guard let amount, amount > 0 else { return false }
         return !name.trimmingCharacters(in: .whitespaces).isEmpty && !isLoading
+            && !AccountLink.conflicts(account: accountId, link: Self.linkedAssetId(kind: kind, assetId: assetId))
     }
 
     var propagationBudgetCount: Int {
@@ -143,6 +146,11 @@ struct EditTemplateLineSheet: View {
                     AssetPickerField(selection: $assetId, kind: kind)
                 }
             }
+            AccountPickerField(
+                selection: $accountId,
+                link: Self.linkedAssetId(kind: kind, assetId: assetId),
+                linkTitle: AssetPickerField.linkTitle(kind: kind)
+            )
             if let impact = availableImpact {
                 ImpactBlock(
                     title: AppLocale.string("Disponible de départ du modèle"),
@@ -250,6 +258,7 @@ struct EditTemplateLineSheet: View {
             update.savingsGoalId = .some(kind.savingsGoalLink(savingsGoalId))
             // Unlike the goal link, only emitted when it moved: an untouched edit must not clear it.
             update.assetId = Self.assetChange(line: templateLine, kind: kind, assetId: assetId)
+            update.accountId = Self.accountChange(line: templateLine, accountId: accountId)
             pendingUpdate = update
 
             let hasBudgets = usageFetchFailed || propagationBudgetCount > 0
@@ -342,6 +351,13 @@ extension EditTemplateLineSheet {
         return line.amount
     }
 
+    static func accountChange(line: TemplateLine, accountId: String?) -> String?? {
+        assetLinkChange(initial: line.accountId, current: accountId)
+    }
+
+    /// A template line is never an income-drawn one here: its link is the kind's own.
+    static func linkedAssetId(kind: TransactionKind, assetId: String?) -> String? { kind.assetLink(assetId) }
+
     static func assetChange(line: TemplateLine, kind: TransactionKind, assetId: String?) -> String?? {
         lineAssetChange(initialKind: line.kind, kind: kind, initialAssetId: line.assetId, assetId: assetId)
     }
@@ -386,6 +402,7 @@ extension EditTemplateLineSheet {
             description: data.description,
             savingsGoalId: data.savingsGoalId,
             assetId: data.assetId,
+            accountId: data.accountId,
             originalAmount: data.originalAmount,
             originalCurrency: data.originalCurrency,
             targetCurrency: data.targetCurrency,

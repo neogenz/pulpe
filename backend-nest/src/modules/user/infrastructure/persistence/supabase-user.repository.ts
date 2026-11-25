@@ -81,8 +81,29 @@ export class SupabaseUserRepository implements UserRepositoryPort {
   /** Settings reads use only the current user's JWT-scoped client. */
   async findSettings(): Promise<UserSettings> {
     const user = await this.#fetchCurrentUser();
-    const locale = await this.#findLocale(user);
-    return this.#toUserSettings(user.user_metadata, locale);
+    const [locale, defaultAccountId] = await Promise.all([
+      this.#findLocale(user),
+      this.findDefaultAccountId(),
+    ]);
+    return this.#toUserSettings(user.user_metadata, locale, defaultAccountId);
+  }
+
+  async findDefaultAccountId(): Promise<string | null> {
+    const { data, error } = await this.authenticatedProvider.client
+      .from('user_default_account')
+      .select('asset_id')
+      .eq('user_id', this.authenticatedProvider.user.id)
+      .maybeSingle();
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_FETCH_FAILED,
+        undefined,
+        { operation: 'user.findDefaultAccount' },
+        { cause: error },
+      );
+    }
+    return data?.asset_id ?? null;
   }
 
   /**
@@ -121,7 +142,80 @@ export class SupabaseUserRepository implements UserRepositoryPort {
       locale = await this.#upsertLocale(userId, patch.locale);
     }
 
-    return this.#toUserSettings(updatedMetadata, locale);
+    // Absent = the stored default stays (installed apps never send it).
+    const defaultAccountId =
+      patch.defaultAccountId === undefined
+        ? await this.findDefaultAccountId()
+        : await this.#writeDefaultAccount(userId, patch.defaultAccountId);
+
+    return this.#toUserSettings(updatedMetadata, locale, defaultAccountId);
+  }
+
+  /**
+   * `null` deletes the row. An id must be an active asset of the caller (RLS
+   * hides the others): archived or foreign is a 404, like the asset routes.
+   */
+  async #writeDefaultAccount(
+    userId: string,
+    assetId: string | null,
+  ): Promise<string | null> {
+    const client = this.authenticatedProvider.client;
+    const context = { operation: 'user.updateDefaultAccount', userId };
+
+    if (assetId === null) {
+      const { error } = await client
+        .from('user_default_account')
+        .delete()
+        .eq('user_id', userId);
+      if (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
+          undefined,
+          context,
+          { cause: error },
+        );
+      }
+      return null;
+    }
+
+    const { data: asset, error: assetError } = await client
+      .from('asset')
+      .select('id')
+      .eq('id', assetId)
+      .eq('user_id', userId)
+      .is('archived_at', null)
+      .maybeSingle();
+    if (assetError) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
+        undefined,
+        context,
+        { cause: assetError },
+      );
+    }
+    if (!asset) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ASSET_NOT_FOUND,
+        { id: assetId },
+        context,
+      );
+    }
+
+    const { error } = await client
+      .from('user_default_account')
+      .upsert(
+        { user_id: userId, asset_id: assetId },
+        { onConflict: 'user_id' },
+      );
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
+        undefined,
+        context,
+        { cause: error },
+      );
+    }
+    return assetId;
   }
 
   async #updateLegacySettings(
@@ -288,6 +382,7 @@ export class SupabaseUserRepository implements UserRepositoryPort {
   #toUserSettings(
     metadata: SupabaseUserMetadata | undefined,
     locale: UserSettings['locale'],
+    defaultAccountId: string | null,
   ): UserSettings {
     const rawPayDay = metadata?.payDayOfMonth;
     const parsedPayDay = payDayOfMonthSchema.safeParse(rawPayDay);
@@ -313,6 +408,7 @@ export class SupabaseUserRepository implements UserRepositoryPort {
       currency,
       showCurrencySelector: metadata?.showCurrencySelector === true,
       ...(locale !== undefined && { locale }),
+      defaultAccountId,
     };
   }
 

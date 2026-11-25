@@ -8,7 +8,6 @@ import {
   createAsset,
   createAssetCategory,
   deleteAsset,
-  dismissAssetSuggestion,
   fetchNetWorth,
   recordAssetSnapshots,
   renameAssetCategory,
@@ -65,10 +64,6 @@ export function useDeleteAsset() {
 
 export function useRecordAssetSnapshots() {
   return useNetWorthMutation(recordAssetSnapshots);
-}
-
-export function useDismissAssetSuggestion() {
-  return useNetWorthMutation(dismissAssetSuggestion);
 }
 
 export function useCreateAssetCategory() {

@@ -5,6 +5,11 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { savingsGoalIdForKind } from '@common/utils/savings-goal-link';
+import { accountIdForCreate } from '@common/utils/asset-link';
+import {
+  USER_REPOSITORY,
+  type UserRepositoryPort,
+} from '@modules/user/domain/ports/user-repository.port';
 import { type BudgetLineSpreadCreate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import {
@@ -84,6 +89,8 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
     private readonly cacheService: CacheService,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepositoryPort,
     @InjectInfoLogger(CreateBudgetLineSpreadUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -98,6 +105,10 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
       targetCurrency: dto.targetCurrency ?? null,
       exchangeRate: dto.exchangeRate ?? null,
     };
+    // Additive flow only: spreading an existing line keeps its own account.
+    const accountId = await accountIdForCreate(dto.accountId, dto.assetId, () =>
+      this.userRepo.findDefaultAccountId(),
+    );
 
     // Total mode DIVIDES a typed total (Σ === total), so a month that cannot be
     // provisioned must fail the whole op — dropping one would break the sum.
@@ -114,6 +125,7 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
           spreadGroupId: dto.spreadGroupId,
           savingsGoalId,
           assetId: dto.assetId,
+          accountId,
           ...fx,
         },
         user,
@@ -134,6 +146,7 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
         spreadGroupId: dto.spreadGroupId,
         savingsGoalId,
         assetId: dto.assetId,
+        accountId,
         ...fx,
       },
       user,
@@ -394,6 +407,7 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
         recurrence: 'one_off',
         savingsGoalId: input.savingsGoalId ?? null,
         assetId: input.assetId ?? null,
+        accountId: input.accountId ?? null,
         originalAmount: tranche.originalAmount ?? null,
         originalCurrency: input.originalCurrency ?? null,
         targetCurrency: input.targetCurrency ?? null,

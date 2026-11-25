@@ -78,6 +78,7 @@ export class CreateTemplateUseCase {
     return {
       savingsGoalId: savingsGoalIdForKind(line.kind, line.savingsGoalId),
       assetId: line.assetId,
+      accountId: line.accountId,
       tagIds: line.tagIds ?? [],
       name: line.name,
       amount: line.amount,

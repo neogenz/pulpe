@@ -141,6 +141,7 @@ export class SupabaseTransactionImportRepository implements TransactionImportRep
   async insertAll(
     budgetId: string,
     planned: readonly PlannedImport[],
+    defaultAccountId: string | null,
   ): Promise<void> {
     if (planned.length === 0) return;
     const user = this.supabaseProvider.user;
@@ -153,6 +154,8 @@ export class SupabaseTransactionImportRepository implements TransactionImportRep
     const rows: TransactionInsert[] = planned.map((entry, index) => ({
       budget_id: budgetId,
       budget_line_id: entry.budgetLineId,
+      // CA4: an attached Réel follows its Prévision's account, stores none.
+      account_id: entry.budgetLineId === null ? defaultAccountId : null,
       name: entry.name,
       amount: encrypted[index].amount,
       kind: entry.kind,

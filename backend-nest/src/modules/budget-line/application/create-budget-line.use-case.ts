@@ -5,6 +5,11 @@ import { type BudgetLineCreate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { savingsGoalIdForKind } from '@common/utils/savings-goal-link';
+import { accountIdForCreate } from '@common/utils/asset-link';
+import {
+  USER_REPOSITORY,
+  type UserRepositoryPort,
+} from '@modules/user/domain/ports/user-repository.port';
 import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
@@ -28,6 +33,8 @@ export class CreateBudgetLineUseCase {
     private readonly currencyService: CurrencyService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepositoryPort,
     @InjectInfoLogger(CreateBudgetLineUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -48,6 +55,11 @@ export class CreateBudgetLineUseCase {
         withRate.savingsGoalId,
       ),
       assetId: withRate.assetId ?? null,
+      accountId: await accountIdForCreate(
+        withRate.accountId,
+        withRate.assetId,
+        () => this.userRepo.findDefaultAccountId(),
+      ),
       sourceSavingsGoalId: withRate.sourceSavingsGoalId ?? null,
       name: withRate.name,
       amount: withRate.amount,

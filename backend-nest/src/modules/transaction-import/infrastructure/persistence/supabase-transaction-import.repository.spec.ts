@@ -11,6 +11,7 @@ const user = { id: 'user-1', clientKey: Buffer.alloc(32, 7) };
 
 const LINE_ID = '22222222-2222-4222-8222-222222222222';
 const CHECKED_AT = '2026-03-31T10:00:00.000Z';
+const COMPTE_COURANT_ID = '33333333-3333-4333-8333-333333333333';
 
 const candidate = (overrides: Partial<PlannedImport> = {}): PlannedImport => ({
   position: 1,
@@ -41,20 +42,25 @@ function setup(insertError: { code: string } | null = null) {
 }
 
 describe('SupabaseTransactionImportRepository.insertAll', () => {
+  // CA32: the free row takes the default account; CA4: the attached one none.
   it('encrypts every amount and sends free and attached rows in a single insert', async () => {
     const { repo, insert, encryption } = setup();
 
-    await repo.insertAll(BUDGET_ID, [
-      candidate(),
-      candidate({
-        position: 2,
-        amount: 5200,
-        kind: 'saving',
-        fingerprint: 'b'.repeat(64),
-        budgetLineId: LINE_ID,
-        checkedAt: CHECKED_AT,
-      }),
-    ]);
+    await repo.insertAll(
+      BUDGET_ID,
+      [
+        candidate(),
+        candidate({
+          position: 2,
+          amount: 5200,
+          kind: 'saving',
+          fingerprint: 'b'.repeat(64),
+          budgetLineId: LINE_ID,
+          checkedAt: CHECKED_AT,
+        }),
+      ],
+      COMPTE_COURANT_ID,
+    );
 
     expect(encryption.prepareAmountsData).toHaveBeenCalledWith(
       [12.5, 5200],
@@ -66,6 +72,7 @@ describe('SupabaseTransactionImportRepository.insertAll', () => {
       {
         budget_id: BUDGET_ID,
         budget_line_id: null,
+        account_id: COMPTE_COURANT_ID,
         name: 'Boulangerie',
         amount: 'enc(12.5)',
         kind: 'expense',
@@ -76,6 +83,7 @@ describe('SupabaseTransactionImportRepository.insertAll', () => {
       {
         budget_id: BUDGET_ID,
         budget_line_id: LINE_ID,
+        account_id: null,
         name: 'Boulangerie',
         amount: 'enc(5200)',
         kind: 'saving',
@@ -89,7 +97,7 @@ describe('SupabaseTransactionImportRepository.insertAll', () => {
   it('turns a fingerprint collision into an import conflict', async () => {
     const { repo } = setup({ code: '23505' });
 
-    const promise = repo.insertAll(BUDGET_ID, [candidate()]);
+    const promise = repo.insertAll(BUDGET_ID, [candidate()], null);
 
     await expect(promise).rejects.toBeInstanceOf(BusinessException);
     await expect(promise).rejects.toMatchObject({
@@ -101,7 +109,7 @@ describe('SupabaseTransactionImportRepository.insertAll', () => {
     const { repo } = setup({ code: '42501' });
 
     await expect(
-      repo.insertAll(BUDGET_ID, [candidate()]),
+      repo.insertAll(BUDGET_ID, [candidate()], null),
     ).rejects.toMatchObject({
       code: ERROR_DEFINITIONS.TRANSACTION_IMPORT_FAILED.code,
     });
@@ -110,7 +118,7 @@ describe('SupabaseTransactionImportRepository.insertAll', () => {
   it('does not reach the database for an empty batch', async () => {
     const { repo, insert } = setup();
 
-    await repo.insertAll(BUDGET_ID, []);
+    await repo.insertAll(BUDGET_ID, [], null);
 
     expect(insert).not.toHaveBeenCalled();
   });

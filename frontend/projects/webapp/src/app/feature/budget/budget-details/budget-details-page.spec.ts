@@ -409,6 +409,8 @@ describe('BudgetDetailsPage — delete a future month (PUL-361)', () => {
           id: attemptedId,
           budgetId,
           checkedAt: expect.any(String),
+          // CA44: the gap never takes the default account.
+          accountId: null,
         }),
       );
       fixture.componentRef.setInput('id', 'another-month');

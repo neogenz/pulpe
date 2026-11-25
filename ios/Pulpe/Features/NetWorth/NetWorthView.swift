@@ -5,6 +5,8 @@ import SwiftUI
 struct NetWorthView: View {
     @Environment(AssetStore.self) private var store
     @Environment(ToastManager.self) private var toastManager
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(FeatureFlagsStore.self) private var featureFlags
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showsArchived = false
     @AppStorage(NetWorthSections.collapsedStorageKey) private var collapsedGroupIds = ""
@@ -105,7 +107,10 @@ struct NetWorthView: View {
             presenting: pendingDelete
         ) { asset in
             Button(AppLocale.string("Supprimer"), role: .destructive) {
-                run { try await store.delete(id: asset.id) }
+                run {
+                    try await store.delete(id: asset.id)
+                    await userSettingsStore.forceRefresh()
+                }
             }
         } message: { _ in
             // swiftlint:disable:next line_length
@@ -267,10 +272,15 @@ struct NetWorthView: View {
             actions: NetWorthAssetActions(
                 edit: { form = .edit(asset) },
                 toggleArchive: {
-                    run { try await store.setArchived(id: asset.id, asset.archivedAt == nil) }
+                    run {
+                        try await store.setArchived(id: asset.id, asset.archivedAt == nil)
+                        await userSettingsStore.forceRefresh()
+                    }
                 },
-                delete: { pendingDelete = asset }
-            )
+                delete: { pendingDelete = asset },
+                toggleDefault: offersDefault(asset) ? { toggleDefault(asset) } : nil
+            ),
+            isDefault: NetWorthDefaultAccount.isDefault(asset, defaultId: userSettingsStore.defaultAccountId)
         )
     }
 
@@ -282,6 +292,21 @@ struct NetWorthView: View {
             isExpanded: $showsArchived
         ) {
             rows(sections.archived, sections: sections, showsCategory: false)
+        }
+    }
+
+    private func offersDefault(_ asset: Asset) -> Bool {
+        NetWorthDefaultAccount.offersMenuEntry(for: asset, flagEnabled: featureFlags.isNetWorthEnabled)
+    }
+
+    private func toggleDefault(_ asset: Asset) {
+        Task {
+            await userSettingsStore.setDefaultAccount(
+                NetWorthDefaultAccount.settingAfterToggle(of: asset, current: userSettingsStore.defaultAccountId)
+            )
+            if let error = userSettingsStore.error {
+                toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
+            }
         }
     }
 

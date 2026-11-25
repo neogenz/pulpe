@@ -291,6 +291,28 @@ describe('TemplateLineStore', () => {
       expect(cleared.update[0].assetId).toBeNull();
     });
 
+    it('CA22: should send a changed account with the propagation choice', async () => {
+      templatesApiMock.bulkOperationsTemplateLines$.mockReturnValue(
+        of(createBulkResponse({ updated: [createLine()] })),
+      );
+
+      await store.updateLine(TEMPLATE_ID, 'line-1', input, true);
+      await store.updateLine(
+        TEMPLATE_ID,
+        'line-1',
+        { ...input, accountId: 'asset-livret' },
+        true,
+      );
+
+      const [, untouched] =
+        templatesApiMock.bulkOperationsTemplateLines$.mock.calls[0];
+      const [, changed] =
+        templatesApiMock.bulkOperationsTemplateLines$.mock.calls[1];
+      expect(untouched.update[0]).not.toHaveProperty('accountId');
+      expect(changed.update[0].accountId).toBe('asset-livret');
+      expect(changed.propagateToBudgets).toBe(true);
+    });
+
     it('should reload when the update mutation fails', async () => {
       templatesApiMock.bulkOperationsTemplateLines$.mockReturnValue(
         throwError(() => new Error('nope')),

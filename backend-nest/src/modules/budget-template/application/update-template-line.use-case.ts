@@ -50,6 +50,8 @@ export class UpdateTemplateLineUseCase {
         currentLine.kind,
         validated.assetId,
       ),
+      // Absent key keeps the account (CA26), whatever the kind.
+      accountId: validated.accountId,
       name: validated.name,
       amount: validated.amount,
       originalAmount: validated.originalAmount,

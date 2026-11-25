@@ -159,15 +159,7 @@ struct CreateTemplateView: View {
             name: name.trimmingCharacters(in: .whitespaces),
             description: description.isEmpty ? nil : description.trimmingCharacters(in: .whitespaces),
             isDefault: isDefault,
-            lines: lines.map { line in
-                TemplateLineCreate(
-                    name: line.name,
-                    amount: line.amount,
-                    kind: line.kind,
-                    recurrence: line.recurrence,
-                    description: ""
-                )
-            }
+            lines: lines.map(Self.lineCreate)
         )
 
         do {
@@ -180,6 +172,17 @@ struct CreateTemplateView: View {
             self.error = error
         }
     }
+
+    static func lineCreate(_ line: TemplateLineInput) -> TemplateLineCreate {
+        TemplateLineCreate(
+            name: line.name,
+            amount: line.amount,
+            kind: line.kind,
+            recurrence: line.recurrence,
+            description: "",
+            accountId: line.accountId
+        )
+    }
 }
 
 // MARK: - Template Line Input
@@ -190,6 +193,10 @@ struct TemplateLineInput: Identifiable {
     var amount: Decimal
     var kind: TransactionKind
     var recurrence: TransactionRecurrence
+    /// Tri-state (PUL-378): `.none` when the « Compte » field never showed (flag off), left out
+    /// of the body; `.some(nil)` is « Aucun ». Both leave the line without an account: the
+    /// server never applies the default account to a model line.
+    var accountId: String??
 }
 
 struct TemplateLineInputRow: View {
@@ -244,6 +251,8 @@ struct AddTemplateLineSheet: View {
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
     @State private var recurrence: TransactionRecurrence = .fixed
+    @State private var accountId: String?
+    @State private var didPrefillAccount = false
     @FocusState private var focusedField: FormField?
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
@@ -292,6 +301,7 @@ struct AddTemplateLineSheet: View {
             descriptionField
             KindToggle(selection: $kind)
             TemplateWhenSection(recurrence: $recurrence, templateName: templateName)
+            AccountPickerField(selection: $accountId, didPrefill: $didPrefillAccount)
             addButton
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
@@ -320,7 +330,9 @@ struct AddTemplateLineSheet: View {
                         name: name.trimmingCharacters(in: .whitespaces),
                         amount: amount,
                         kind: kind,
-                        recurrence: recurrence
+                        recurrence: recurrence,
+                        // The field prefills only once it has shown: before that, no account is sent.
+                        accountId: didPrefillAccount ? .some(accountId) : .none
                     )
                     onAdd(line)
                     dismiss()

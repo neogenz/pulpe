@@ -29,6 +29,8 @@ export const budgetLineCreateFromFormSchema = z
     sourceSavingsGoalId: z.uuid().nullable().optional(),
     /** Avoir lié. Absent quand le flag `net_worth` est éteint : le corps reste celui d'avant. */
     assetId: z.uuid().nullable().optional(),
+    /** Compte du mouvement, toujours envoyé : absent, le serveur y mettrait le compte par défaut. */
+    accountId: z.uuid().nullable(),
   })
   .transform(
     (input): BudgetLineCreate => ({
@@ -42,6 +44,7 @@ export const budgetLineCreateFromFormSchema = z
       tagIds: input.tagIds,
       savingsGoalId: input.savingsGoalId,
       ...(input.assetId !== undefined ? { assetId: input.assetId } : {}),
+      accountId: input.accountId,
       // Omis plutôt que `null` : le schéma de création est strict et n'accepte
       // pas la valeur nulle sur ce champ — l'absence dit déjà « pas de source ».
       ...(input.sourceSavingsGoalId

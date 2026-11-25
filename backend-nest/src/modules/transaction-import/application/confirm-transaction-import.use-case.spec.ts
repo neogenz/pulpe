@@ -58,7 +58,11 @@ const logger: InfoLogger = {
 } as unknown as InfoLogger;
 
 function setup(
-  options: { imported?: string[]; currency?: 'CHF' | 'EUR' } = {},
+  options: {
+    imported?: string[];
+    currency?: 'CHF' | 'EUR';
+    defaultAccountId?: string | null;
+  } = {},
 ) {
   const inserted: PlannedImport[][] = [];
   const repo = {
@@ -92,6 +96,7 @@ function setup(
       currency: options.currency ?? 'CHF',
       showCurrencySelector: false,
     })),
+    findDefaultAccountId: mock(async () => options.defaultAccountId ?? null),
   } as unknown as UserRepositoryPort;
   const cache = { invalidateForUser: mock(async () => {}) };
   const recalculation = { recalculate: mock(async () => {}) };
@@ -113,8 +118,10 @@ function setup(
       repo,
       cache as unknown as CacheService,
       recalculation as BudgetRecalculationPort,
+      users,
       logger,
     ),
+    users,
   };
 }
 
@@ -349,6 +356,27 @@ describe('ConfirmTransactionImportUseCase', () => {
       budgetLineId: null,
       checkedAt: null,
     });
+  });
+
+  // CA32: free Réels of an import take the default account; CA4: attached
+  // ones follow their Prévision, the repository writes no account on them.
+  it('hands the default account to the batch for its free Réels', async () => {
+    const compteCourantId = 'c0000000-0000-4000-8000-000000000001';
+    ctx = setup({ defaultAccountId: compteCourantId });
+
+    await ctx.confirm.execute(
+      sample,
+      BUDGET_ID,
+      [{ position: 1, budgetLineId: SALARY_LINE.id }],
+      user,
+    );
+
+    expect(ctx.repo.insertAll).toHaveBeenCalledWith(
+      BUDGET_ID,
+      expect.any(Array),
+      compteCourantId,
+    );
+    expect(ctx.users.findDefaultAccountId).toHaveBeenCalledTimes(1);
   });
 
   it.each([

@@ -20,6 +20,7 @@ struct EditBudgetLineSheet: View {
     @State private var kind: TransactionKind
     @State private var savingsGoalId: String?
     @State private var assetId: String?
+    @State private var accountId: String?
     @State private var selectedTagIds: Set<String>
     @State private var isLoading = false
     @State private var error: Error?
@@ -55,6 +56,7 @@ struct EditBudgetLineSheet: View {
         _kind = State(initialValue: budgetLine.kind)
         _savingsGoalId = State(initialValue: budgetLine.savingsGoalId)
         _assetId = State(initialValue: budgetLine.assetId)
+        _accountId = State(initialValue: budgetLine.accountId)
         let tagIds = Set(budgetLine.tagIds ?? [])
         _selectedTagIds = State(initialValue: tagIds)
         initialTagIds = tagIds
@@ -74,6 +76,12 @@ struct EditBudgetLineSheet: View {
     private var canSubmit: Bool {
         guard let amount, amount > 0 else { return false }
         return !name.trimmingCharacters(in: .whitespaces).isEmpty && !isLoading
+            && !AccountLink.conflicts(account: accountId, link: linkedAssetId)
+    }
+
+    /// The element the line feeds, repays or is drawn from, as the form stands.
+    private var linkedAssetId: String? {
+        Self.linkedAssetId(line: budgetLine, kind: kind, assetId: assetId)
     }
 
     var body: some View {
@@ -141,6 +149,9 @@ struct EditBudgetLineSheet: View {
                     AssetPickerField(selection: $assetId, kind: kind)
                 }
             }
+            AccountPickerField(
+                selection: $accountId, link: linkedAssetId, linkTitle: AssetPickerField.linkTitle(kind: kind)
+            )
             // PUL-329 v2 — the goal an income was announced to be drawn from is
             // read-only: the origin is fixed at creation, and a second picker
             // here would suggest the source could be swapped.
@@ -186,25 +197,6 @@ struct EditBudgetLineSheet: View {
         }
         let before = initialAmount.asAmount(for: inputCurrency)
         return AppLocale.string("prévus en \(monthName) · avant \(before)")
-    }
-
-    /// The frequency belongs to the model: shown, locked.
-    private var frequencyRow: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Text("Fréquence")
-                .font(PulpeTypography.body)
-                .foregroundStyle(Color.textPrimary)
-            Spacer()
-            Text(budgetLine.recurrence.label)
-                .font(PulpeTypography.body)
-                .foregroundStyle(Color.textSecondary)
-            Image(systemName: "lock")
-                .font(PulpeTypography.metricMini)
-                .foregroundStyle(Color.textSecondary)
-                .accessibilityHidden(true)
-        }
-        .frame(minHeight: DesignTokens.ListRow.minHeight)
-        .accessibilityElement(children: .combine)
     }
 
     /// « Seul novembre change. Ton modèle garde 600.00 et la fréquence se règle là-bas. »
@@ -295,6 +287,7 @@ struct EditBudgetLineSheet: View {
             // tagged or untagged; the kind-guard clears it for non-saving kinds.
             data.savingsGoalId = .some(kind.savingsGoalLink(savingsGoalId))
             data.assetId = Self.assetChange(line: budgetLine, kind: kind, assetId: assetId)
+            data.accountId = Self.accountChange(line: budgetLine, accountId: accountId)
 
             let updatedLine = try await dependencies.updateBudgetLine(budgetLine.id, data)
             submitSuccessTrigger.toggle()
@@ -362,6 +355,27 @@ struct EditBudgetLineSheet: View {
     }
 }
 
+extension EditBudgetLineSheet {
+    /// The frequency belongs to the model: shown, locked.
+    private var frequencyRow: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            Text("Fréquence")
+                .font(PulpeTypography.body)
+                .foregroundStyle(Color.textPrimary)
+            Spacer()
+            Text(budgetLine.recurrence.label)
+                .font(PulpeTypography.body)
+                .foregroundStyle(Color.textSecondary)
+            Image(systemName: "lock")
+                .font(PulpeTypography.metricMini)
+                .foregroundStyle(Color.textSecondary)
+                .accessibilityHidden(true)
+        }
+        .frame(minHeight: DesignTokens.ListRow.minHeight)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct EditBudgetLineDependencies: Sendable {
     var updateBudgetLine: @Sendable (String, BudgetLineUpdate) async throws -> BudgetLine
     var templateLines: @Sendable (String) async throws -> [TemplateLine] = { templateId in
@@ -377,9 +391,19 @@ struct EditBudgetLineDependencies: Sendable {
 
 extension EditBudgetLineSheet {
     /// Unlike the goal link, only emitted when it moved: an untouched edit must not clear it.
+    /// Only emitted when it moved, so an untouched edit keeps the account (CA26).
+    static func accountChange(line: BudgetLine, accountId: String?) -> String?? {
+        assetLinkChange(initial: line.accountId, current: accountId)
+    }
+
     /// An income's origin is fixed at creation, so it is never touched while it stays an income.
     static func assetChange(line: BudgetLine, kind: TransactionKind, assetId: String?) -> String?? {
         lineAssetChange(initialKind: line.kind, kind: kind, initialAssetId: line.assetId, assetId: assetId)
+    }
+
+    /// An income's origin is fixed at creation: it only counts while the line stays an income.
+    static func linkedAssetId(line: BudgetLine, kind: TransactionKind, assetId: String?) -> String? {
+        kind == .income ? (line.kind == .income ? line.assetId : nil) : kind.assetLink(assetId)
     }
 }
 

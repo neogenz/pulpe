@@ -52,6 +52,13 @@ jest.mock("@/core/notifications/reminder-flags", () => ({
   writeWeeklyRecapEnabled: (isEnabled: boolean) => mockWriteEnabled(isEnabled),
 }));
 
+jest.mock("@/core/observability/feature-flags", () => ({
+  useFeatureFlag: () => false,
+}));
+jest.mock("@/features/net-worth/net-worth-queries", () => ({
+  useNetWorth: () => ({ data: undefined }),
+}));
+
 beforeEach(() => jest.clearAllMocks());
 
 async function toggleRecap() {

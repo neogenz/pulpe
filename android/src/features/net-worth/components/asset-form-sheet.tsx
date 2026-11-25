@@ -10,9 +10,7 @@ import { Button, Switch, Text, TextInput, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { AmountField } from "@/core/ui/amount-field";
-import { formatCurrency } from "@/core/ui/amount-format";
 import { FieldError } from "@/core/ui/field-error";
-import { formatInstantDay } from "@/core/ui/date-format";
 import { hapticSuccess } from "@/core/ui/haptics";
 import { SegmentedPicker } from "@/core/ui/segmented-picker";
 import { FilterChip } from "@/core/ui/filter-chip";
@@ -31,6 +29,7 @@ import {
   STARTER_KEYS,
   typeOptions,
 } from "../asset-form-draft";
+import { formatEntryDate, signedAmount } from "../net-worth-sections";
 import {
   useCreateAsset,
   useCreateAssetCategory,
@@ -246,8 +245,10 @@ export function AssetFormSheet({
           style={{ color: theme.colors.onSurfaceVariant }}
         >
           {t("netWorth.form.lastValue", {
-            amount: formatCurrency(Math.abs(asset.latestValue), asset.currency),
-            date: formatInstantDay(asset.latestRecordedAt, locale),
+            // The entry keeps its own sign: the overdraft switch follows the
+            // value today, which checked lines may have moved past zero.
+            amount: signedAmount(asset.recordedValue, asset.currency, false),
+            date: formatEntryDate(asset.latestRecordedAt, locale),
           })}
         </Text>
       )}

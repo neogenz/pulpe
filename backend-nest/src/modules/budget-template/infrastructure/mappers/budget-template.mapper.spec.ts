@@ -20,6 +20,7 @@ const baseLine: TemplateLine = {
   templateId: 'template-1',
   savingsGoalId: null,
   assetId: null,
+  accountId: null,
   name: 'Salaire',
   amount: 5000,
   originalAmount: null,

@@ -21,6 +21,12 @@ import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { SectionHeader } from "@/core/ui/section-header";
 import { TabHeader } from "@/core/ui/tab-header";
 import { SPACING } from "@/core/ui/theme";
+import {
+  invalidateUserSettings,
+  useUserSettings,
+} from "@/core/user-settings/user-settings-queries";
+import { useUpdateUserSettings } from "@/features/account/account-queries";
+import { defaultAfterToggle } from "@/features/net-worth/account-link";
 import { AssetFormSheet } from "@/features/net-worth/components/asset-form-sheet";
 import {
   type IntroOutcome,
@@ -42,9 +48,7 @@ import { RenameTypeSheet } from "@/features/net-worth/components/rename-type-she
 import {
   refetchStaleNetWorth,
   useDeleteAsset,
-  useDismissAssetSuggestion,
   useNetWorth,
-  useRecordAssetSnapshots,
   useUpdateAsset,
 } from "@/features/net-worth/net-worth-queries";
 import {
@@ -65,7 +69,7 @@ export default function NetWorthScreen() {
   const netWorth = useNetWorth();
   const pull = usePullToRefresh(() => netWorth.refetch());
   // A budget write only marks this read stale; coming back to the tab is when
-  // its suggestions are looked at, so it asks once here.
+  // the values it moved are looked at, so it asks once here.
   useFocusEffect(
     useCallback(() => {
       void refetchStaleNetWorth();
@@ -73,8 +77,9 @@ export default function NetWorthScreen() {
   );
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
-  const recordSnapshots = useRecordAssetSnapshots();
-  const dismissSuggestion = useDismissAssetSuggestion();
+  const settings = useUserSettings();
+  const updateSettings = useUpdateUserSettings();
+  const defaultAccountId = settings.data?.defaultAccountId ?? null;
   const [form, setForm] = useState<FormTarget | null>(null);
   const [renaming, setRenaming] = useState<NetWorthGroup | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Asset | null>(null);
@@ -98,24 +103,25 @@ export default function NetWorthScreen() {
 
   // A failed write is told by a toast; the mutation has already refetched.
   const onError = () => setWriteFailed(true);
+  // Archiving or deleting the default account clears the setting on the
+  // server (CA35): read it again.
+  const afterRemoval = {
+    onError,
+    onSuccess: () => void invalidateUserSettings(),
+  };
   const actions: AssetActions = {
     edit: (asset) => setForm({ kind: "edit", asset }),
     toggleArchive: (asset) =>
       updateAsset.mutate(
         { assetId: asset.id, changes: { archived: asset.archivedAt === null } },
-        { onError },
+        afterRemoval,
       ),
     remove: setPendingDelete,
-    applySuggestion: (asset) => {
-      const suggestion = asset.suggestion;
-      if (suggestion === null) return;
-      recordSnapshots.mutate(
-        { items: [{ assetId: asset.id, value: suggestion.proposedValue }] },
+    toggleDefault: (asset) =>
+      updateSettings.mutate(
+        { defaultAccountId: defaultAfterToggle(asset, defaultAccountId) },
         { onError },
-      );
-    },
-    dismissSuggestion: (asset) =>
-      dismissSuggestion.mutate(asset.id, { onError }),
+      ),
   };
 
   // The explainer opens by itself the first time the tab shows its content.
@@ -201,6 +207,7 @@ export default function NetWorthScreen() {
               onRenameType={group.isType ? setRenaming : undefined}
               categoryNames={categoryNames}
               actions={actions}
+              defaultAccountId={defaultAccountId}
             />
           ))}
         </View>
@@ -238,6 +245,7 @@ export default function NetWorthScreen() {
                   assets={sections.archived}
                   baseCurrency={sections.baseCurrency}
                   actions={actions}
+                  defaultAccountId={defaultAccountId}
                 />
               )}
             </View>
@@ -302,7 +310,7 @@ export default function NetWorthScreen() {
               textColor={theme.colors.error}
               onPress={() => {
                 if (pendingDelete !== null) {
-                  deleteAsset.mutate(pendingDelete.id, { onError });
+                  deleteAsset.mutate(pendingDelete.id, afterRemoval);
                 }
                 setPendingDelete(null);
               }}

@@ -88,6 +88,7 @@ export class SpreadTransactionFromTxnUseCase implements TransactionSpreadFromTxn
         {
           name: source.name,
           kind: source.kind,
+          accountId: source.accountId,
           tranches: plan.tranches,
           originalCurrency: plan.originalCurrency,
           targetCurrency: plan.targetCurrency,

@@ -16,6 +16,7 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { TitleDisplay } from '@core/routing';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { STORAGE_KEYS, StorageService } from '@core/storage';
+import { UserSettingsStore } from '@core/user-settings';
 import { NetWorthFxNotes } from './components/net-worth-fx-notes';
 import { RenameTypeDialog } from './components/rename-type-dialog';
 import { NetWorthSankey } from './components/net-worth-sankey';
@@ -128,9 +129,20 @@ describe('NetWorthPage', () => {
     isEmpty: computed(() => (value()?.assets ?? []).length === 0),
     setArchived: vi.fn(),
     saveAsset: vi.fn(),
+    deleteAsset: vi.fn(),
     renameCategory: vi.fn(),
   };
-  const dialogs = { openCreate: vi.fn(), openIntro: vi.fn() };
+  const defaultAccountId = signal<string | null>(null);
+  const settings = {
+    defaultAccountId,
+    reload: vi.fn(),
+    setDefaultAccount: vi.fn(),
+  };
+  const dialogs = {
+    openCreate: vi.fn(),
+    openIntro: vi.fn(),
+    confirmDelete: vi.fn(),
+  };
   const matDialog = { open: vi.fn() };
   const snackBar = { open: vi.fn() };
 
@@ -164,6 +176,13 @@ describe('NetWorthPage', () => {
     dialogs.openIntro.mockResolvedValue('close');
     store.setArchived.mockResolvedValue(undefined);
     store.saveAsset.mockResolvedValue(undefined);
+    store.deleteAsset.mockResolvedValue(undefined);
+    dialogs.confirmDelete.mockResolvedValue(true);
+    defaultAccountId.set(null);
+    // The server answers with the account it now holds: both screens read it.
+    settings.setDefaultAccount.mockImplementation(async (id: string | null) => {
+      defaultAccountId.set(id);
+    });
 
     await TestBed.configureTestingModule({
       imports: [NetWorthPage],
@@ -172,6 +191,7 @@ describe('NetWorthPage', () => {
         ...provideTranslocoForTest(),
         { provide: LOCALE_ID, useValue: 'fr-FR' },
         { provide: NetWorthStore, useValue: store },
+        { provide: UserSettingsStore, useValue: settings },
         { provide: NetWorthDialogService, useValue: dialogs },
         { provide: MatDialog, useValue: matDialog },
         { provide: MatSnackBar, useValue: snackBar },
@@ -430,6 +450,87 @@ describe('NetWorthPage', () => {
 
     expect(store.setArchived).toHaveBeenCalledWith('a1', true);
     expect(snackBar.open).toHaveBeenCalledOnce();
+  });
+
+  describe('default account (PUL-378)', () => {
+    const rowOf = (name: string) =>
+      [...fixture.nativeElement.querySelectorAll('[data-testid="asset-row"]')]
+        .map((row) => row as HTMLElement)
+        .find((row) => row.textContent?.includes(name))!;
+    const badgeNames = () =>
+      [...fixture.nativeElement.querySelectorAll('[data-testid="asset-row"]')]
+        .filter((row) =>
+          row.querySelector('[data-testid="asset-default-chip"]'),
+        )
+        .map((row) =>
+          row
+            .querySelector('[data-testid="asset-row-name"]')!
+            .textContent!.trim(),
+        );
+    const chooseFromMenu = async (name: string, action: string) => {
+      rowOf(name)
+        .querySelector<HTMLElement>('[data-testid="asset-row-menu-button"]')!
+        .click();
+      fixture.detectChanges();
+      document.querySelector<HTMLElement>(`[data-testid="${action}"]`)!.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    it('CA47: the badge sits on the default account only', () => {
+      defaultAccountId.set('a1');
+      render(populated);
+
+      expect(badgeNames()).toEqual(['UBS']);
+    });
+
+    it('CA47: « Utiliser par défaut » moves the badge and writes the setting', async () => {
+      defaultAccountId.set('a1');
+      render(populated);
+
+      await chooseFromMenu('Leasing', 'asset-default-action');
+
+      expect(settings.setDefaultAccount).toHaveBeenCalledWith('a3');
+      expect(badgeNames()).toEqual(['Leasing']);
+    });
+
+    it('CA34, CA47: « Ne plus utiliser par défaut » puts the setting back on « Aucun »', async () => {
+      defaultAccountId.set('a1');
+      render(populated);
+
+      await chooseFromMenu('UBS', 'asset-default-action');
+
+      expect(settings.setDefaultAccount).toHaveBeenCalledWith(null);
+      expect(badgeNames()).toEqual([]);
+    });
+
+    it('CA35: archiving or deleting reloads the setting the server may have cleared', async () => {
+      defaultAccountId.set('a1');
+      render(populated);
+
+      await fixture.componentInstance['onAction']({
+        asset: populated.assets[0],
+        action: 'archive',
+      });
+      expect(settings.reload).toHaveBeenCalledTimes(1);
+
+      await fixture.componentInstance['onAction']({
+        asset: populated.assets[0],
+        action: 'delete',
+      });
+      expect(store.deleteAsset).toHaveBeenCalledWith('a1');
+      expect(settings.reload).toHaveBeenCalledTimes(2);
+    });
+
+    it('says so when the setting cannot be written', async () => {
+      render(populated);
+      settings.setDefaultAccount.mockRejectedValue(new Error('boom'));
+
+      await chooseFromMenu('UBS', 'asset-default-action');
+
+      expect(snackBar.open).toHaveBeenCalledOnce();
+      expect(badgeNames()).toEqual([]);
+    });
   });
 
   describe('explainer', () => {

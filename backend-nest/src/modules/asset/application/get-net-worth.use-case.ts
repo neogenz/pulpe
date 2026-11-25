@@ -14,8 +14,10 @@ import {
   EXCHANGE_RATE_PORT,
   type ExchangeRatePort,
 } from '../domain/ports/exchange-rate.port';
-import { checkedLinesCutoffs, computeNetWorth } from '../domain/asset.formulas';
-import type { NetWorth } from '../domain/asset.entity';
+import { computeNetWorth, movementsSince } from '../domain/asset.formulas';
+import type { AssetMovements, NetWorth } from '../domain/asset.entity';
+
+const NO_MOVEMENTS: AssetMovements = { lines: [], freeMovements: [] };
 
 @Injectable()
 export class GetNetWorthUseCase {
@@ -38,9 +40,10 @@ export class GetNetWorthUseCase {
     ]);
     const baseCurrency = settings.currency;
 
-    const checkedLines = await this.repo.findCheckedLinkedLines(
-      checkedLinesCutoffs(assets),
-    );
+    const since = movementsSince(assets);
+    const movements = since
+      ? await this.repo.findMovementsSince(since)
+      : NO_MOVEMENTS;
 
     const foreignCurrencies = [
       ...new Set(assets.map((asset) => asset.currency)),
@@ -73,7 +76,7 @@ export class GetNetWorthUseCase {
       categories,
       assets,
       rates,
-      checkedLines,
+      movements,
     });
   }
 }

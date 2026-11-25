@@ -18,6 +18,8 @@ export interface Transaction {
   id: string;
   budgetId: string;
   budgetLineId: string | null;
+  /** PUL-378 : toujours nul sur un mouvement rattaché, qui suit sa prévision. */
+  accountId: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;
@@ -53,6 +55,7 @@ export interface SpreadSourceTransaction {
   /** Owner of the parent budget — application-layer IDOR guard (defense-in-depth vs RLS). */
   userId: string;
   budgetLineId: string | null;
+  accountId: string | null;
   month: number;
   year: number;
   name: string;
@@ -71,6 +74,7 @@ export interface TransactionCreateInput {
   id?: string;
   budgetId: string;
   budgetLineId?: string | null;
+  accountId?: string | null;
   name: string;
   amount: number;
   originalAmount?: number | null;
@@ -96,6 +100,7 @@ export interface TransactionCreateInput {
  * Currency metadata fields use `undefined` to mean "do not touch", `null` to mean "clear".
  */
 export interface TransactionUpdatePatch {
+  accountId?: string | null;
   name?: string;
   amount?: number;
   originalAmount?: number | null;

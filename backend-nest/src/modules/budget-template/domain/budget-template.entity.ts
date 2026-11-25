@@ -49,6 +49,7 @@ export interface TemplateLine {
   templateId: string;
   savingsGoalId: string | null;
   assetId: string | null;
+  accountId: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;
@@ -80,6 +81,7 @@ export interface TemplateLineCreateInput {
   templateId: string;
   savingsGoalId?: string | null;
   assetId?: string | null;
+  accountId?: string | null;
   name: string;
   amount: number;
   originalAmount?: number | null;
@@ -103,6 +105,7 @@ export interface TemplateLineUpdatePatch {
   amount?: number;
   savingsGoalId?: string | null;
   assetId?: string | null;
+  accountId?: string | null;
   originalAmount?: number | null;
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;
@@ -133,6 +136,7 @@ export interface CreateTemplateWithLinesInput {
 export interface TemplateLineRpcInput {
   savingsGoalId?: string | null;
   assetId?: string | null;
+  accountId?: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;
@@ -166,6 +170,7 @@ export interface TemplateLineRpcUpdate {
   amount?: number;
   savingsGoalId?: string | null;
   assetId?: string | null;
+  accountId?: string | null;
   originalAmount?: number | null;
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;

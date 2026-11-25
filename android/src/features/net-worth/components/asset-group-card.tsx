@@ -1,7 +1,7 @@
 import type { Asset, SupportedCurrency } from "pulpe-shared";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Button, IconButton, Menu, Text, useTheme } from "react-native-paper";
+import { IconButton, Menu, Text, useTheme } from "react-native-paper";
 
 import { useTranslation } from "@/core/i18n/locale-store";
 import { Amount } from "@/core/ui/amount";
@@ -12,21 +12,20 @@ import { useFinancialColors } from "@/core/ui/scheme-colors";
 import { StateChip } from "@/core/ui/state-chip";
 import { SPACING } from "@/core/ui/theme";
 
+import { isDefaultAccount } from "../account-link";
 import {
-  assetAgeLabel,
   assetBadges,
+  entryCaption,
   type NetWorthGroup,
   showsConversion,
-  suggestionDetail,
-  visibleSuggestion,
 } from "../net-worth-sections";
 
 export interface AssetActions {
   edit: (asset: Asset) => void;
   toggleArchive: (asset: Asset) => void;
   remove: (asset: Asset) => void;
-  applySuggestion: (asset: Asset) => void;
-  dismissSuggestion: (asset: Asset) => void;
+  /** « Utiliser par défaut dans le budget », on an active element (CA47). */
+  toggleDefault: (asset: Asset) => void;
 }
 
 interface AssetGroupCardProps {
@@ -37,6 +36,8 @@ interface AssetGroupCardProps {
   /** Names a row's Type where the card is not one (« Découverts »). */
   categoryNames?: Record<string, string>;
   actions: AssetActions;
+  /** The element new movements start on. */
+  defaultAccountId: string | null;
 }
 
 /** One Type: its name and total, then one row per asset. */
@@ -46,6 +47,7 @@ export function AssetGroupCard({
   onRenameType,
   categoryNames,
   actions,
+  defaultAccountId,
 }: AssetGroupCardProps) {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -95,6 +97,7 @@ export function AssetGroupCard({
         baseCurrency={baseCurrency}
         categoryNames={group.isType ? undefined : categoryNames}
         actions={actions}
+        defaultAccountId={defaultAccountId}
       />
     </View>
   );
@@ -105,6 +108,7 @@ interface AssetRowsProps {
   baseCurrency: SupportedCurrency;
   categoryNames?: Record<string, string>;
   actions: AssetActions;
+  defaultAccountId: string | null;
 }
 
 export function AssetRows({
@@ -112,6 +116,7 @@ export function AssetRows({
   baseCurrency,
   categoryNames,
   actions,
+  defaultAccountId,
 }: AssetRowsProps) {
   return (
     <LedgerCard dividerInset={0}>
@@ -122,6 +127,7 @@ export function AssetRows({
           baseCurrency={baseCurrency}
           categoryName={categoryNames?.[asset.categoryId]}
           actions={actions}
+          isDefault={isDefaultAccount(asset, defaultAccountId)}
         />
       ))}
     </LedgerCard>
@@ -133,24 +139,22 @@ function AssetRow({
   baseCurrency,
   categoryName,
   actions,
+  isDefault,
 }: {
   asset: Asset;
   baseCurrency: SupportedCurrency;
   categoryName?: string;
   actions: AssetActions;
+  isDefault: boolean;
 }) {
   const theme = useTheme();
   const financial = useFinancialColors();
   const ripple = useRipple();
-  const { t } = useTranslation();
+  const { locale, t } = useTranslation();
   const [isMenuVisible, setMenuVisible] = useState(false);
   const isArchived = asset.archivedAt !== null;
 
-  const when = assetAgeLabel(asset.latestRecordedAt, new Date(), t);
-  const updated =
-    categoryName === undefined
-      ? t("netWorth.updated", { when })
-      : t("netWorth.updatedIn", { category: categoryName, when });
+  const updated = entryCaption(asset, locale, t, categoryName);
   // A followed account says where its balance comes from, in the same breath.
   const caption = asset.inPulpe
     ? t("netWorth.whenMatching", { line: updated })
@@ -160,7 +164,20 @@ function AssetRow({
     ? `≈ ${formatCurrency(asset.convertedValue ?? 0, baseCurrency)}`
     : null;
   const badges = assetBadges(asset);
-  const suggestion = visibleSuggestion(asset);
+  const badgeLabels = [
+    ...(isDefault ? [t("netWorth.account.defaultBadge")] : []),
+    ...badges.map((badge) =>
+      t(
+        badge === "overdraft"
+          ? "netWorth.badgeOverdraft"
+          : "netWorth.badgeExcluded",
+      ),
+    ),
+  ];
+  // The row's own label hides its children from TalkBack: the badges go in it too.
+  const rowLabel = [asset.name, value, converted, caption, ...badgeLabels]
+    .filter(Boolean)
+    .join(", ");
 
   const body = (
     <View style={styles.content}>
@@ -189,15 +206,18 @@ function AssetRow({
       >
         {caption}
       </Text>
-      {badges.length > 0 && (
+      {badgeLabels.length > 0 && (
         <View style={styles.badges}>
-          {badges.map((badge) => (
-            <StateChip key={badge} tint={financial.overBudget}>
-              {t(
-                badge === "overdraft"
-                  ? "netWorth.badgeOverdraft"
-                  : "netWorth.badgeExcluded",
-              )}
+          {badgeLabels.map((label, index) => (
+            <StateChip
+              key={label}
+              tint={
+                isDefault && index === 0
+                  ? theme.colors.primary
+                  : financial.overBudget
+              }
+            >
+              {label}
             </StateChip>
           ))}
         </View>
@@ -209,13 +229,7 @@ function AssetRow({
     <View>
       <View style={styles.row}>
         {isArchived ? (
-          <View
-            accessible
-            accessibilityLabel={[asset.name, value, converted, caption]
-              .filter(Boolean)
-              .join(", ")}
-            style={styles.main}
-          >
+          <View accessible accessibilityLabel={rowLabel} style={styles.main}>
             {body}
           </View>
         ) : (
@@ -223,9 +237,7 @@ function AssetRow({
             onPress={() => actions.edit(asset)}
             android_ripple={ripple}
             accessibilityRole="button"
-            accessibilityLabel={[asset.name, value, converted, caption]
-              .filter(Boolean)
-              .join(", ")}
+            accessibilityLabel={rowLabel}
             accessibilityHint={t("netWorth.editAccessibility", {
               name: asset.name,
             })}
@@ -257,6 +269,22 @@ function AssetRow({
               }}
             />
           )}
+          {!isArchived && (
+            <Menu.Item
+              leadingIcon={isDefault ? "star-off-outline" : "star-outline"}
+              style={styles.wideMenuItem}
+              contentStyle={styles.wideMenuItem}
+              title={t(
+                isDefault
+                  ? "netWorth.account.unsetDefault"
+                  : "netWorth.account.setDefault",
+              )}
+              onPress={() => {
+                setMenuVisible(false);
+                actions.toggleDefault(asset);
+              }}
+            />
+          )}
           <Menu.Item
             leadingIcon={
               isArchived ? "archive-arrow-up-outline" : "archive-outline"
@@ -277,45 +305,13 @@ function AssetRow({
           />
         </Menu>
       </View>
-      {suggestion !== null && (
-        <View style={styles.suggestion}>
-          <Text variant="titleMedium" style={{ color: theme.colors.onSurface }}>
-            {t("netWorth.suggestion.propose", {
-              amount: formatCurrency(suggestion.proposedValue, asset.currency),
-            })}
-          </Text>
-          <Text
-            variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {t(`netWorth.suggestion.${suggestionDetail(asset)}`, {
-              amount: formatCurrency(
-                Math.abs(suggestion.delta),
-                asset.currency,
-              ),
-            })}
-          </Text>
-          <View style={styles.suggestionActions}>
-            <Button
-              mode="text"
-              onPress={() => actions.dismissSuggestion(asset)}
-            >
-              {t("netWorth.suggestion.dismiss")}
-            </Button>
-            <Button
-              mode="contained-tonal"
-              onPress={() => actions.applySuggestion(asset)}
-            >
-              {t("netWorth.suggestion.apply")}
-            </Button>
-          </View>
-        </View>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Paper caps a menu entry at 280dp; « Utiliser par défaut dans le budget » needs more.
+  wideMenuItem: { maxWidth: 400 },
   groupHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -330,15 +326,5 @@ const styles = StyleSheet.create({
   name: { flex: 1 },
   // The name wraps on two lines; a five-figure value must stay whole.
   values: { alignItems: "flex-end", flexShrink: 0, maxWidth: "70%" },
-  badges: { flexDirection: "row", gap: SPACING.xs },
-  suggestion: {
-    gap: SPACING.xs,
-    paddingHorizontal: SPACING.md,
-    paddingBottom: SPACING.md,
-  },
-  suggestionActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: SPACING.sm,
-  },
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.xs },
 });

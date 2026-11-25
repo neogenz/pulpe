@@ -84,7 +84,8 @@ extension MovementSheet {
                 targetCurrency: conversion?.targetCurrency,
                 exchangeRate: conversion?.exchangeRate,
                 tagIds: TagPickerField.createdTagIds(from: selectedTagIds),
-                sourceSavingsGoalId: savingsOriginRule.sourceSavingsGoalId
+                sourceSavingsGoalId: savingsOriginRule.sourceSavingsGoalId,
+                accountId: AccountLink.onCreate(lineId: selectedLineId, account: accountId)
             )
 
             let transaction = try await dependencies.createTransaction(data)
@@ -123,7 +124,7 @@ extension MovementSheet {
                     to: userSettingsStore.currency
                 )
                 : nil
-            let data = EditTransactionLogic.buildUpdate(
+            var data = EditTransactionLogic.buildUpdate(
                 name: name.trimmingCharacters(in: .whitespaces),
                 amount: amount,
                 kind: kind,
@@ -131,6 +132,7 @@ extension MovementSheet {
                 conversion: conversion,
                 tagIds: TagPickerField.updatedTagIds(initial: initialTagIds, current: selectedTagIds)
             )
+            data.accountId = AccountLink.onUpdate(lineId: tx.budgetLineId, initial: tx.accountId, account: accountId)
             try await editActions.save(tx.id, data)
             submitSuccessTrigger.toggle()
             toastManager.show(AppLocale.string("Modifié"))

@@ -6,8 +6,10 @@ import {
   assetAgeLabel,
   assetBadges,
   buildNetWorthSections,
-  suggestionDetail,
-  visibleSuggestion,
+  entryCaption,
+  formatEntryDate,
+  movedSinceEntry,
+  signedAmount,
 } from "./net-worth-sections";
 
 const CATEGORY_OWN = "00000000-0000-4000-8000-000000000001";
@@ -108,22 +110,51 @@ describe("row presentation", () => {
     ).toEqual([]);
   });
 
-  it("words the suggestion by direction and hides it on an archived asset", () => {
-    const suggestion = { delta: -20, proposedValue: 80 };
-    expect(suggestionDetail(asset({ suggestion }))).toBe("drawn");
-    expect(
-      suggestionDetail(
-        asset({ suggestion: { delta: 20, proposedValue: 120 } }),
-      ),
-    ).toBe("saved");
-    expect(suggestionDetail(asset({ direction: "owe", suggestion }))).toBe(
-      "repaid",
-    );
-    expect(
-      visibleSuggestion(
-        asset({ suggestion, archivedAt: "2026-10-01T00:00:00.000Z" }),
-      ),
-    ).toBeNull();
+  describe("entryCaption (PUL-377 CA9)", () => {
+    const now = new Date("2026-11-24T12:00:00.000Z");
+    const t = (key: string, options?: Record<string, unknown>) =>
+      translateForLocale("fr", key, options);
+    const livret = {
+      name: "Livret",
+      recordedValue: 10_000,
+      latestValue: 10_500,
+      latestRecordedAt: "2026-11-24T08:00:00.000Z",
+    };
+
+    it("says what moved since the entry, signed, with its date", () => {
+      expect(movedSinceEntry(asset(livret))).toBe(500);
+      expect(entryCaption(asset(livret), "fr", t, undefined, now)).toBe(
+        "+500.00 CHF depuis ta saisie du 24\u00a0novembre",
+      );
+    });
+
+    it("signs a debt that went down with U+2212 and leads with its Type", () => {
+      const leasing = asset({
+        ...livret,
+        direction: "owe",
+        recordedValue: 8000,
+        latestValue: 7700,
+      });
+      expect(entryCaption(leasing, "fr", t, "Leasing", now)).toBe(
+        "Leasing · \u2212300.00 CHF depuis ta saisie du 24\u00a0novembre",
+      );
+    });
+
+    it("falls back on the age when nothing moved", () => {
+      const still = asset({ ...livret, latestValue: 10_000 });
+      expect(movedSinceEntry(still)).toBeNull();
+      expect(entryCaption(still, "fr", t, undefined, now)).toBe(
+        "Mis à jour aujourd'hui",
+      );
+    });
+
+    it("adds the year for an earlier year and signs the last entry", () => {
+      expect(formatEntryDate("2025-11-03T10:00:00.000Z", "fr", now)).toBe(
+        "3\u00a0novembre\u00a02025",
+      );
+      expect(signedAmount(-250, "CHF", false)).toBe("\u2212250.00 CHF");
+      expect(signedAmount(400, "CHF", false)).toBe("400.00 CHF");
+    });
   });
 
   describe("assetAgeLabel", () => {

@@ -13,6 +13,15 @@ import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { TagStore } from '@core/tag';
 import { createMockDataCache } from '@core/testing';
 import { UserSettingsStore } from '@core/user-settings';
+import { PostHogService } from '@core/analytics/posthog';
+import { AssetApi } from '@core/asset/asset-api';
+import { createMockPostHogService } from '@app/testing/mock-posthog';
+import {
+  COMPTE_COURANT,
+  REVOLUT,
+  TICKET_ASSETS,
+  netWorthResponse,
+} from '@app/testing/net-worth-fixtures';
 import {
   AddTransactionForm,
   type TransactionFormData,
@@ -23,6 +32,7 @@ const GOAL_ID = '00000000-0000-4000-8000-0000000000a1';
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
   showCurrencySelector: ReturnType<typeof signal<boolean>>;
+  defaultAccountId: ReturnType<typeof signal<string | null>>;
 }
 
 interface ConverterMock {
@@ -32,13 +42,20 @@ interface ConverterMock {
 function configureForm({
   userCurrency = 'CHF' as SupportedCurrency,
   showCurrencyPref = true,
+  defaultAccountId = null as string | null,
+  isNetWorthEnabled = true,
 }: {
   userCurrency?: SupportedCurrency;
   showCurrencyPref?: boolean;
+  defaultAccountId?: string | null;
+  isNetWorthEnabled?: boolean;
 } = {}) {
+  const postHog = createMockPostHogService();
+  postHog.isFeatureEnabled.mockReturnValue(isNetWorthEnabled);
   const settings: SettingsMock = {
     currency: signal<SupportedCurrency>(userCurrency),
     showCurrencySelector: signal(showCurrencyPref),
+    defaultAccountId: signal<string | null>(defaultAccountId),
   };
   const converter: ConverterMock = {
     convertWithMetadata: vi.fn().mockImplementation(async (amount: number) => ({
@@ -70,6 +87,14 @@ function configureForm({
       ...provideTranslocoForTest(),
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
+      { provide: PostHogService, useValue: postHog },
+      {
+        provide: AssetApi,
+        useValue: {
+          cache: createMockDataCache(),
+          getNetWorth$: () => of(netWorthResponse(TICKET_ASSETS)),
+        },
+      },
       { provide: TagStore, useValue: createMockTagStore() },
       {
         provide: SavingsGoalApi,
@@ -445,6 +470,78 @@ describe('AddTransactionForm', () => {
           },
         }),
       );
+    });
+  });
+  describe('account field (PUL-378)', () => {
+    const fill = (component: AddTransactionForm) =>
+      component['model'].update((model) => ({
+        ...model,
+        name: 'Restaurant',
+        money: { ...model.money, amount: 80 },
+      }));
+
+    it('CA1, CA3: offers « Compte », on « Aucun » without a default account, and sends the null', async () => {
+      const { fixture, component, createdSpy } = configureForm();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      fill(component);
+
+      expect(
+        fixture.nativeElement.querySelector(
+          'pulpe-account-picker-field mat-select',
+        ),
+      ).not.toBeNull();
+      await component.submit();
+
+      expect(createdSpy.mock.calls[0][0].accountId).toBeNull();
+    });
+
+    it('CA29, CA36: starts on the default account and sends it untouched', async () => {
+      const { component, createdSpy } = configureForm({
+        defaultAccountId: COMPTE_COURANT.id,
+      });
+      fill(component);
+
+      expect(component['model']().accountId).toBe(COMPTE_COURANT.id);
+      await component.submit();
+
+      expect(createdSpy.mock.calls[0][0].accountId).toBe(COMPTE_COURANT.id);
+    });
+
+    it('CA29: lets the user pick another account or « Aucun »', async () => {
+      const { component, createdSpy } = configureForm({
+        defaultAccountId: COMPTE_COURANT.id,
+      });
+      fill(component);
+
+      component['model'].update((m) => ({ ...m, accountId: REVOLUT.id }));
+      await component.submit();
+      component['model'].update((m) => ({ ...m, accountId: null }));
+      await component.submit();
+
+      expect(createdSpy.mock.calls.map(([tx]) => tx.accountId)).toEqual([
+        REVOLUT.id,
+        null,
+      ]);
+    });
+
+    it('CA2: with the flag off the field is absent and « Aucun » is sent, default or not', async () => {
+      const { fixture, component, createdSpy } = configureForm({
+        defaultAccountId: COMPTE_COURANT.id,
+        isNetWorthEnabled: false,
+      });
+      fixture.detectChanges();
+      fill(component);
+
+      expect(
+        fixture.nativeElement.querySelector(
+          'pulpe-account-picker-field mat-select',
+        ),
+      ).toBeNull();
+      await component.submit();
+
+      expect(createdSpy.mock.calls[0][0].accountId).toBeNull();
     });
   });
 });

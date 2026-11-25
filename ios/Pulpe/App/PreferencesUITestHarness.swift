@@ -29,6 +29,8 @@ struct PreferencesUITestHarness: View {
     @State private var budgetListStore = BudgetListStore()
     @State private var dashboardStore = DashboardStore()
     @State private var tagStore = TagStore()
+    @State private var assetStore = AssetStore()
+    @State private var featureFlagsStore = FeatureFlagsStore()
     private let showsFeedback: Bool
 
     init() {
@@ -65,6 +67,8 @@ struct PreferencesUITestHarness: View {
         .environment(budgetListStore)
         .environment(dashboardStore)
         .environment(tagStore)
+        .environment(assetStore)
+        .environment(featureFlagsStore)
         .environment(appState.toastManager)
         .environment(\.locale, AppLocale.uiLocale(for: userSettingsStore.locale))
     }

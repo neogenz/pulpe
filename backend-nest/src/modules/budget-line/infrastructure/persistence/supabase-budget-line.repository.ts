@@ -230,6 +230,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       budgetId: decrypted.budget_id,
       savingsGoalId: decrypted.savings_goal_id,
       assetId: decrypted.asset_id,
+      accountId: decrypted.account_id,
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,
       name: decrypted.name,
@@ -513,6 +514,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       recurrence: input.recurrence,
       savings_goal_id: input.savingsGoalId ?? null,
       asset_id: input.assetId ?? null,
+      account_id: input.accountId ?? null,
       original_amount: originalAmount,
       original_currency: input.originalCurrency ?? null,
       target_currency: input.targetCurrency ?? null,
@@ -829,7 +831,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const { data, error } = await supabase
       .from('template_line')
       .select(
-        'name, amount, kind, recurrence, original_amount, original_currency, target_currency, exchange_rate, id, created_at, updated_at, description, template_id, savings_goal_id, asset_id',
+        'name, amount, kind, recurrence, original_amount, original_currency, target_currency, exchange_rate, id, created_at, updated_at, description, template_id, savings_goal_id, asset_id, account_id',
       )
       .eq('id', templateLineId)
       .single();
@@ -922,6 +924,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       templateLineId: decrypted.template_line_id,
       savingsGoalId: decrypted.savings_goal_id,
       assetId: decrypted.asset_id,
+      accountId: decrypted.account_id,
       spreadGroupId: decrypted.spread_group_id,
       savingsWithdrawalGroupId: decrypted.savings_withdrawal_group_id,
       sourceSavingsGoalId: decrypted.source_savings_goal_id,
@@ -948,6 +951,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       templateId: row.template_id,
       savingsGoalId: row.savings_goal_id ?? null,
       assetId: row.asset_id ?? null,
+      accountId: row.account_id ?? null,
       name: row.name,
       amount: row.amount
         ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
@@ -1012,6 +1016,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       template_line_id: input.templateLineId ?? null,
       savings_goal_id: input.savingsGoalId ?? null,
       asset_id: input.assetId ?? null,
+      account_id: input.accountId ?? null,
       // Le nom instantané est absent volontairement : `enforce_budget_line_savings_goal_source`
       // le pose depuis la ligne d'objectif qu'il lit déjà pour valider le tenant.
       source_savings_goal_id: input.sourceSavingsGoalId ?? null,
@@ -1088,6 +1093,9 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     }
     if (patch.assetId !== undefined) {
       updateData.asset_id = patch.assetId;
+    }
+    if (patch.accountId !== undefined) {
+      updateData.account_id = patch.accountId;
     }
     if (patch.isManuallyAdjusted !== undefined) {
       updateData.is_manually_adjusted = patch.isManuallyAdjusted;

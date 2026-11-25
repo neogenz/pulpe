@@ -20,6 +20,7 @@ const mockRow: BudgetLineRow = {
   template_line_id: null,
   savings_goal_id: null,
   asset_id: null,
+  account_id: null,
   spread_group_id: 'group-1',
   savings_withdrawal_group_id: null,
   source_savings_goal_id: null,

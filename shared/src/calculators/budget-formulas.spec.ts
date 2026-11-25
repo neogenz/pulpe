@@ -2010,3 +2010,81 @@ describe('BudgetFormulas.calculateTemplateTotals', () => {
     });
   });
 });
+
+describe('accounts do not change the budget (PUL-378 CA27, CA42)', () => {
+  const COMPTE_COURANT = 'account-compte-courant';
+  const REVOLUT = 'account-revolut';
+  const CHECKED = '2026-11-20T10:00:00+00:00';
+  const budgetLines = [
+    {
+      id: 'salaire',
+      kind: 'income' as const,
+      amount: 6000,
+      checkedAt: CHECKED,
+    },
+    { id: 'loyer', kind: 'expense' as const, amount: 1500, checkedAt: CHECKED },
+    { id: 'courses', kind: 'expense' as const, amount: 400, checkedAt: null },
+  ];
+  const transactions = [
+    {
+      kind: 'expense' as const,
+      amount: 120,
+      budgetLineId: 'courses',
+      checkedAt: CHECKED,
+    },
+    {
+      kind: 'expense' as const,
+      amount: 80,
+      budgetLineId: null,
+      checkedAt: CHECKED,
+    },
+  ];
+  const withAccounts = {
+    budgetLines: budgetLines.map((line, i) => ({
+      ...line,
+      accountId: i === 0 ? COMPTE_COURANT : REVOLUT,
+    })),
+    // The allocated movement follows its prévision; the free one has its own.
+    transactions: [
+      { ...transactions[0], accountId: null },
+      { ...transactions[1], accountId: REVOLUT },
+    ],
+  };
+
+  it('gives the same metrics and realized balance with or without accounts', () => {
+    expect(
+      BudgetFormulas.calculateAllMetrics(
+        withAccounts.budgetLines,
+        withAccounts.transactions,
+        250,
+      ),
+    ).toEqual(
+      BudgetFormulas.calculateAllMetrics(budgetLines, transactions, 250),
+    );
+    expect(
+      BudgetFormulas.calculateRealizedBalance(
+        withAccounts.budgetLines,
+        withAccounts.transactions,
+        250,
+      ),
+    ).toBe(
+      BudgetFormulas.calculateRealizedBalance(budgetLines, transactions, 250),
+    );
+  });
+
+  it('keeps the contract figures (Salaire 6000, Loyer 1500, Courses 400, Restaurant 80)', () => {
+    const metrics = BudgetFormulas.calculateAllMetrics(
+      withAccounts.budgetLines,
+      withAccounts.transactions,
+    );
+    // Courses envelope 400 > 120 spent, so it counts 400; Restaurant 80 is free.
+    expect(metrics.totalIncome).toBe(6000);
+    expect(metrics.totalExpenses).toBe(1980);
+    expect(
+      BudgetFormulas.calculateRealizedBalance(
+        withAccounts.budgetLines,
+        withAccounts.transactions,
+      ),
+    ).toBe(6000 - 1500 - 120 - 80);
+  });
+});

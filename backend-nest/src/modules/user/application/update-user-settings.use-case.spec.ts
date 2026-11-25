@@ -36,6 +36,7 @@ describe('UpdateUserSettingsUseCase', () => {
       currency: 'EUR' as const,
       showCurrencySelector: false,
       locale: 'fr' as const,
+      defaultAccountId: null,
     };
     mockRepo.updateSettings = mock(async () => settings);
 
@@ -55,6 +56,7 @@ describe('UpdateUserSettingsUseCase', () => {
       currency: 'CHF' as const,
       showCurrencySelector: false,
       locale: 'de' as const,
+      defaultAccountId: null,
     };
     mockRepo.updateSettings = mock(async () => settings);
 

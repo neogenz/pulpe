@@ -270,6 +270,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
             id: lineId,
             savingsGoalId: input.savingsGoalId ?? null,
             assetId: input.assetId ?? null,
+            accountId: input.accountId ?? null,
             name: input.name,
             amount: input.amount,
             originalAmount: input.originalAmount ?? null,
@@ -792,6 +793,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       templateId: row.template_id,
       savingsGoalId: row.savings_goal_id ?? null,
       assetId: row.asset_id ?? null,
+      accountId: row.account_id ?? null,
       name: row.name,
       amount: row.amount
         ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
@@ -822,6 +824,9 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       updateData.savings_goal_id = patch.savingsGoalId;
     }
     if (patch.assetId !== undefined) updateData.asset_id = patch.assetId;
+    if (patch.accountId !== undefined) {
+      updateData.account_id = patch.accountId;
+    }
     if (patch.kind !== undefined) updateData.kind = patch.kind;
     if (patch.recurrence !== undefined)
       updateData.recurrence = patch.recurrence;
@@ -887,6 +892,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       recurrence: line.recurrence,
       savings_goal_id: line.savingsGoalId ?? null,
       asset_id: line.assetId ?? null,
+      account_id: line.accountId ?? null,
       tag_ids: line.tagIds ?? [],
       description: line.description,
       original_amount: encryptedOriginalAmounts[index],
@@ -920,6 +926,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
           payload.savings_goal_id = line.savingsGoalId;
         }
         if (line.assetId !== undefined) payload.asset_id = line.assetId;
+        if (line.accountId !== undefined) payload.account_id = line.accountId;
         if (line.originalAmount !== undefined) {
           payload.original_amount = await this.encryption.encryptOptionalAmount(
             line.originalAmount,

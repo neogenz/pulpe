@@ -4,6 +4,7 @@ import { BudgetModule } from '@modules/budget/budget.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
 import { EncryptionModule } from '@modules/encryption/encryption.module';
 import { CurrencyModule } from '@modules/currency/currency.module';
+import { UserModule } from '@modules/user/user.module';
 import { createInfoLoggerProvider } from '@common/logger';
 import { BudgetLineController } from './infrastructure/http/budget-line.controller';
 import { SupabaseBudgetLineRepository } from './infrastructure/persistence/supabase-budget-line.repository';
@@ -39,6 +40,7 @@ import { BUDGET_LINE_WRITE_PORT } from './domain/ports/budget-line-write.port';
     BudgetTemplateModule,
     EncryptionModule,
     CurrencyModule,
+    UserModule,
   ],
   controllers: [BudgetLineController],
   providers: [

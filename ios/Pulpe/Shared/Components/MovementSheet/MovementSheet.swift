@@ -54,6 +54,8 @@ struct MovementSheet: View {
     @State var submitSuccessTrigger = false
     @State var inputCurrency: SupportedCurrency
     @State var selectedTagIds: Set<String>
+    @State var accountId: String?
+    @State var didPrefillAccount = false
     @State var linePick: LinePick?
     @State var showsLinePicker = false
     @State var isConfirmingPostpone = false
@@ -79,6 +81,7 @@ struct MovementSheet: View {
     let dependencies: AddTransactionDependencies
     let conversionService = CurrencyConversionService.shared
 
+    // swiftlint:disable:next function_body_length
     init(
         context: MovementSheetContext,
         editActions: MovementSheetEditActions? = nil,
@@ -112,6 +115,7 @@ struct MovementSheet: View {
             _isChecked = State(initialValue: tx.isChecked)
             _inputCurrency = State(initialValue: currency)
             _selectedTagIds = State(initialValue: tagIds)
+            _accountId = State(initialValue: tx.accountId)
             self.initialTagIds = tagIds
         } else {
             let line = context.preselectedLineId.flatMap { id in context.budgetLines.first { $0.id == id } }
@@ -161,6 +165,9 @@ struct MovementSheet: View {
             origin: savingsOrigin
         )
     }
+
+    /// A movement allocated to a prévision follows its prévision's account (CA4).
+    var showsAccountField: Bool { selectedLineId == nil && !routesToWithdrawal }
 
     var routesToWithdrawal: Bool { savingsOriginRule.routesToWithdrawal }
 
@@ -269,6 +276,9 @@ struct MovementSheet: View {
             lineQuestion
             if !isEditing { savingsOriginCard }
             impactBlock
+            if showsAccountField {
+                AccountPickerField(selection: $accountId, didPrefill: isEditing ? nil : $didPrefillAccount)
+            }
             detailsCard
 
             if let error {
