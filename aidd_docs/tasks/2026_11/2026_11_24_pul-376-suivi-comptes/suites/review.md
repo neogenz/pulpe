@@ -54,6 +54,7 @@ iOS :
 - Historique : chaque entrée lue d'un bloc, libellé, date, montant.
 - Champ « Compte » : nom, valeur, groupes « Ce que j'ai » et « Ce que je dois », sélection annoncée.
 - « Compte par défaut » dans les réglages : nom, valeur et aide lus.
+- Android, prévision « Épargne mensuelle » absente de la liste de novembre : pas un bug. Elle est pointée, et la liste s'ouvre sur le filtre « À pointer », comme sur le web et iOS. Elle apparaît sous « Pointé » ; l'« Épargne mensuelle » visible par défaut est une autre prévision du même nom, venue des données de test.
 - Contraste de l'erreur de conflit : aucun signalement axe ; 5.24 en clair et 8.30 en sombre sur Android.
 
 ### Laissés : touchés par l'épique, pas corrigés
@@ -81,7 +82,6 @@ iOS :
 - Web : l'aide de « Langue » n'est pas reliée à son champ.
 - Web : le sélecteur de devise d'un nouvel élément porte le même nom que le montant (« Valeur actuelle »).
 - Android : segmenté « Dépense / Épargne » et titre de la barre coupés à 2.0, « Close menu » en anglais, fond de sheet sans nom.
-- Android : la prévision « Épargne mensuelle » n'apparaît pas dans la liste de novembre alors qu'elle s'ouvre par lien direct (non creusé).
 - iOS : en-tête de « Compte » en AX5, le prénom se casse lettre par lettre.
 - iOS : pied des Préférences avec un double point (« 24 nov.. »).
 - iOS : l'icône de bandeau d'information est lue « Erreur ».
