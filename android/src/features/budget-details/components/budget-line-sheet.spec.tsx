@@ -369,7 +369,11 @@ describe("« Compte » (PUL-378)", () => {
   it("CA29 prefills the default account, and CA23 gives the spread the same one", async () => {
     mockAccounts = { ...mockAccounts, defaultAccountId: COMPTE_COURANT };
     const view = await render(<BudgetLineSheet {...baseProps} />);
-    expect(view.getByDisplayValue("Compte courant")).toBeTruthy();
+    expect(
+      view.getByRole("button", {
+        name: "netWorth.account.label, Compte courant",
+      }),
+    ).toBeTruthy();
     await fill(view);
     await fireEvent.press(view.getByText("budgets.mutations.add"));
     expect(mockCreate.mutate.mock.calls[0][0]).toMatchObject({

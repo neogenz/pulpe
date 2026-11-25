@@ -214,6 +214,17 @@ describe('AddBudgetLineDialog', () => {
   });
 
   describe('checked toggle', () => {
+    it('names the switch for screen readers', () => {
+      const { fixture } = configureDialog();
+      fixture.detectChanges();
+
+      const toggle: HTMLElement = fixture.nativeElement.querySelector(
+        'mat-slide-toggle button[role="switch"]',
+      );
+
+      expect(toggle.getAttribute('aria-label')).toBe('Déjà pointé');
+    });
+
     it('should set checkedAt to null by default', async () => {
       const { component, dialogRef } = configureDialog();
       component['model'].update((m) => ({

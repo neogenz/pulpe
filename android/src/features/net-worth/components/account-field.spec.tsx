@@ -37,3 +37,25 @@ describe("AccountField (CA25)", () => {
     ).toBeTruthy();
   });
 });
+
+describe("AccountField for TalkBack", () => {
+  it("is one button: the value and the arrow inside are not stops of their own", async () => {
+    const view = await render(
+      <PaperProvider>
+        <AccountField
+          choices={accountChoices(contractAssets())}
+          value={LIVRET}
+          onChange={jest.fn()}
+        />
+      </PaperProvider>,
+    );
+
+    expect(view.getByRole("button", { name: "Compte, Livret" })).toBeTruthy();
+    expect(
+      view.queryByDisplayValue("Livret", { includeHiddenElements: false }),
+    ).toBeNull();
+    expect(
+      view.queryAllByRole("button", { includeHiddenElements: false }),
+    ).toHaveLength(1);
+  });
+});

@@ -484,7 +484,7 @@ interface AddBudgetLineModel {
                 }}</span>
                 <mat-slide-toggle
                   [formField]="addForm.isChecked"
-                  [attr.aria-label]="'budget.forecastCheckedToggle' | transloco"
+                  [aria-label]="'budget.forecastCheckedToggle' | transloco"
                 />
               </div>
             }

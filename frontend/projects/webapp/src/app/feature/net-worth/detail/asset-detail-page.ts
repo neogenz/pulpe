@@ -56,7 +56,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
           <mat-icon>arrow_back</mat-icon>
         </button>
         <h1
-          class="ph-no-capture min-w-0 flex-shrink truncate text-headline-medium font-bold md:text-display-small"
+          class="ph-no-capture min-w-0 flex-shrink break-words hyphens-auto text-headline-medium font-bold md:text-display-small"
           data-testid="page-title"
         >
           <!-- Never an empty heading: before the asset loads, or when it is gone. -->
@@ -188,9 +188,10 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   [class.superseded]="row.supersededDate !== null"
                   data-testid="asset-history-entry"
                 >
-                  <span class="flex min-w-0 flex-1 flex-col">
+                  <!-- Never narrower than a few letters: with large text the amount wraps below instead. -->
+                  <span class="flex min-w-[8ch] flex-1 flex-col">
                     <span
-                      class="ph-no-capture truncate text-body-large"
+                      class="ph-no-capture break-words hyphens-auto text-body-large"
                       [class.font-semibold]="row.isRecorded"
                       data-testid="asset-history-label"
                       >{{ row.label }}</span
@@ -211,7 +212,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                     }
                   </span>
                   <span
-                    class="ph-no-capture whitespace-nowrap text-title-small font-semibold tabular-nums"
+                    class="ph-no-capture ml-auto whitespace-nowrap text-title-small font-semibold tabular-nums"
                     data-testid="asset-history-amount"
                     >{{ row.amount }}</span
                   >
@@ -253,6 +254,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
     }
     .row {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 1rem;
       padding: 0.75rem 1.25rem;

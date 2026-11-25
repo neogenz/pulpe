@@ -234,6 +234,17 @@ describe('CreateAllocatedTransactionForm', () => {
   });
 
   describe('checked toggle', () => {
+    it('names the switch for screen readers', () => {
+      const { fixture } = setupForm();
+      fixture.detectChanges();
+
+      const toggle: HTMLElement = fixture.nativeElement.querySelector(
+        'mat-slide-toggle button[role="switch"]',
+      );
+
+      expect(toggle.getAttribute('aria-label')).toBe('Déjà pointé');
+    });
+
     it('should set checkedAt to null by default', async () => {
       const { component, createdSpy } = setupForm();
       const midMonth = new Date(

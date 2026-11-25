@@ -826,7 +826,9 @@ describe("« Compte » (PUL-378)", () => {
 
   it("CA3 starts on « Aucun » without a default and sends null", async () => {
     const view = await render(<TransactionSheet {...baseProps} />);
-    expect(view.getByDisplayValue(NONE)).toBeTruthy();
+    expect(
+      view.getByRole("button", { name: `netWorth.account.label, ${NONE}` }),
+    ).toBeTruthy();
     await fill(view);
     await add(view);
 
@@ -836,7 +838,11 @@ describe("« Compte » (PUL-378)", () => {
   it("CA29 prefills the default account, which stays changeable", async () => {
     mockSettings = { data: { defaultAccountId: COMPTE_COURANT } };
     const view = await render(<TransactionSheet {...baseProps} />);
-    expect(view.getByDisplayValue("Compte courant")).toBeTruthy();
+    expect(
+      view.getByRole("button", {
+        name: "netWorth.account.label, Compte courant",
+      }),
+    ).toBeTruthy();
     await fill(view, 6000, "Salaire");
     await add(view);
     expect(created()).toMatchObject({ accountId: COMPTE_COURANT });
