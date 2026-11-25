@@ -8,17 +8,25 @@ struct NetWorthBreakdownCard: View {
     let totals: NetWorthTotals
 
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Width the card gives the diagram; it only scrolls sideways below its minimum width.
     @State private var availableWidth = DesignTokens.Chart.sankeyMinWidth
 
-    /// The drawing height (grown when any column needs more room) plus the label headroom.
-    private var diagramHeight: CGFloat {
-        NetWorthSankeyLayout.drawingHeight(graph) + DesignTokens.Chart.sankeyLabelHeadroom
+    /// The diagram is drawn in points: at accessibility sizes its labels would be cut, so they
+    /// move to a list under it, where they wrap freely.
+    private var labelsInLegend: Bool { dynamicTypeSize.isAccessibilitySize }
+
+    /// Room above the nodes for the labels of the middle column.
+    private var headroom: CGFloat {
+        labelsInLegend ? DesignTokens.Spacing.none : DesignTokens.Chart.sankeyLabelHeadroom
     }
 
     private var currency: SupportedCurrency { totals.baseCurrency }
 
     var body: some View {
+        let width = max(availableWidth, DesignTokens.Chart.sankeyMinWidth)
+        let size = CGSize(width: width, height: NetWorthSankeyLayout.drawingHeight(graph))
+        let result = NetWorthSankeyLayout.layout(graph, in: size)
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text("Répartition aujourd'hui")
@@ -29,8 +37,8 @@ struct NetWorthBreakdownCard: View {
                     .foregroundStyle(Color.textSecondary)
             }
             ScrollView(.horizontal, showsIndicators: false) {
-                diagram(width: max(availableWidth, DesignTokens.Chart.sankeyMinWidth))
-                    .frame(height: diagramHeight, alignment: .top)
+                diagram(result, size: size)
+                    .frame(height: size.height + headroom, alignment: .top)
             }
             .onGeometryChange(for: CGFloat.self, of: \.size.width) { availableWidth = $0 }
             .accessibilityElement(children: .ignore)
@@ -42,6 +50,11 @@ struct NetWorthBreakdownCard: View {
                     .font(PulpeTypography.captionRegular)
                     .foregroundStyle(Color.textTertiary)
             }
+            if labelsInLegend {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    ForEach(result.nodes, id: \.id) { legendRow($0) }
+                }
+            }
         }
         .padding(DesignTokens.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -49,12 +62,8 @@ struct NetWorthBreakdownCard: View {
         .accessibilityIdentifier("netWorthBreakdown")
     }
 
-    private func diagram(width: CGFloat) -> some View {
-        // Headroom above the nodes for the labels of the middle column.
-        let headroom = DesignTokens.Chart.sankeyLabelHeadroom
-        let size = CGSize(width: width, height: NetWorthSankeyLayout.drawingHeight(graph))
-        let result = NetWorthSankeyLayout.layout(graph, in: size)
-        return ZStack(alignment: .topLeading) {
+    private func diagram(_ result: NetWorthSankeyLayout.Result, size: CGSize) -> some View {
+        ZStack(alignment: .topLeading) {
             Canvas { context, _ in
                 for band in result.bands {
                     context.fill(
@@ -67,11 +76,13 @@ struct NetWorthBreakdownCard: View {
                     context.fill(Path(node.rect), with: .color(color(node.kind)))
                 }
             }
-            ForEach(result.nodes, id: \.id) { node in
-                label(node, lastColumn: result.columnCount - 1)
+            if !labelsInLegend {
+                ForEach(result.nodes, id: \.id) { node in
+                    label(node, lastColumn: result.columnCount - 1)
+                }
             }
         }
-        .frame(width: width, height: size.height)
+        .frame(width: size.width, height: size.height)
         .padding(.top, headroom)
     }
 
@@ -110,6 +121,26 @@ struct NetWorthBreakdownCard: View {
                     y: frame.rect.midY
                 )
         }
+    }
+
+    private func legendRow(_ frame: NetWorthSankeyLayout.NodeFrame) -> some View {
+        let node = graph.nodes[frame.id]
+        return HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: "circle.fill")
+                .font(PulpeTypography.metricMini)
+                .foregroundStyle(color(frame.kind))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
+                Text(title(of: frame.kind, name: node?.name))
+                    .font(PulpeTypography.metricMini)
+                    .foregroundStyle(Color.textPrimary)
+                Text((node?.value ?? 0).asCompactCurrency(currency))
+                    .font(PulpeTypography.metricMini)
+                    .foregroundStyle(Color.textSecondary)
+                    .sensitiveAmount()
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private func title(of kind: NetWorthSankey.Kind, name: String?) -> String {
