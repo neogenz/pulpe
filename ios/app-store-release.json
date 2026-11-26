@@ -1,10 +1,10 @@
 {
-  "productVersion": "0.62.1",
-  "marketingVersion": "1.14.1",
-  "buildNumber": "1",
+  "productVersion": "0.67.0",
+  "marketingVersion": "1.14.2",
+  "buildNumber": "4",
   "releaseType": "AFTER_APPROVAL",
   "whatsNew": {
-    "frFR": "Corrections :\n- Quand ta banque affiche un autre solde que Pulpe, « Comparer avec mes comptes » propose d’abord de pointer les mouvements déjà passés sur ton compte, au lieu d’un ajustement qui les compterait deux fois.\n- Les soldes saisis dans « Comparer avec mes comptes » t’attendent quand tu reviens de ton app bancaire, même si Pulpe s’est verrouillée entre-temps."
+    "frFR": "Nouveautés :\n- « Comparer avec mes comptes » refait : un guide en trois écrans, puis tu indiques pour chaque compte ce que tu as et ce que tu dois.\n- Quand tes comptes et Pulpe ne tombent pas juste, Pulpe te propose les mouvements qui expliquent l’écart, même ceux du mois dernier.\n- Touche le montant de l’Accueil pour voir comment Pulpe l’obtient.\n- En notant une dépense, tape quelques lettres pour retrouver la bonne prévision.\n\nCorrections :\n- « Le calcul » cite aussi l’épargne qui explique un écart, par exemple « 3e pilier +100 ».\n- Ce qu’il te restait le mois d’avant porte le bon mois : « Ce qu’il te restait fin août » si tu n’as créé ni septembre ni octobre.\n- La phrase de l’Accueil se base sur ce qu’il te reste à dépenser.\n- En très grand texte, la feuille « Nouvelle dépense » tient dans l’écran et les boutons arrondis grandissent au lieu de couper leurs mots."
   },
-  "reviewNotes": "This update fixes account matching; there is no new feature. Sign in with the configured demo account. On the home screen, tap \"Le calcul\", then \"Comparer avec mes comptes\". Enter a bank balance that differs from the checked balance: when unchecked past items explain the gap, the sheet now suggests checking them off before offering an adjustment. Entered balances are kept if the app locks while you switch to another app."
+  "reviewNotes": "Sign in with the configured demo account. On the home screen, tap the amount to open \"Le calcul\", then \"Comparer avec mes comptes\": a three-step guide introduces the comparison, then you enter what each account holds and owes. When logging an expense, type a few letters to find the matching planned item. With the largest accessibility text size, the \"Nouvelle dépense\" sheet fits on screen."
 }

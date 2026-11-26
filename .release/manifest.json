@@ -1,4 +1,4 @@
 {
-  "productVersion": "0.66.2",
-  "githubReleaseNotes": "## v0.66.2\n\n### Corrections\n\n- **Revenus dans « À pointer »** — Sur iPhone et Android, un revenu encore à pointer affiche son « + » (+4 600.00 pour un salaire), pour ne plus le confondre avec une dépense.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
+  "productVersion": "0.67.0",
+  "githubReleaseNotes": "## v0.67.0\n\n### Corrections\n\n- **Saisie lisible en très grand texte** — Sur iPhone, avec les plus grandes tailles de texte, la feuille « Nouvelle dépense » tient dans l’écran : la date passe sous son libellé au lieu de déborder.\n- **Retour ferme d’abord le menu** — Sur Android, quand le menu ⋮ est ouvert, Retour le ferme sans quitter l’écran.\n- **« Déjà pointé » lu par le lecteur d’écran** — Sur le web, le lecteur d’écran annonce le nom de l’interrupteur « Déjà pointé » quand tu ajoutes une prévision ou que tu notes une dépense.\n\n### Technique\n\n- **Mon patrimoine avance** — Encore en alpha pour les testeurs : une dépense ou un revenu peut maintenant indiquer son compte, et chaque élément affiche son historique.\n\n---\n\n_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_\n"
 }
