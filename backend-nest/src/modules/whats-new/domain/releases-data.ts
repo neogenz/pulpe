@@ -2454,6 +2454,11 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
  */
 export const SILENT_IOS_RELEASES: readonly SilentIosReleaseEntry[] = [
   {
+    version: '0.67.0',
+    reason:
+      'La 1.14.2 a déjà sa feuille de nouveautés avec la 0.66.0 ; la 0.67.0 n’y ajoute que des corrections d’accessibilité, et Mon patrimoine reste en alpha pour les testeurs',
+  },
+  {
     version: '0.59.0',
     reason:
       'La 1.13.1 ne change que la formulation de messages d’erreur rares (saisie refusée par le serveur, adresse inconnue), pour qu’ils restent dans la langue de l’app : rien qui mérite d’interrompre les utilisateurs au lancement',

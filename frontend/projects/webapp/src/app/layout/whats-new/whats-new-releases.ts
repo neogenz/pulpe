@@ -38,6 +38,11 @@ export function featuresForLocale(locale: string): readonly string[] {
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
   {
+    version: '0.67.0',
+    reason:
+      'Seule correction visible dans la webapp : le nom de l’interrupteur « Déjà pointé » pour les lecteurs d’écran ; Mon patrimoine reste en alpha pour les testeurs',
+  },
+  {
     version: '0.66.2',
     reason:
       'Correction d’affichage dans « À pointer » sur iPhone et Android : pas de nouveauté à annoncer',

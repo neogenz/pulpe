@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.67.0
+
+### Minor Changes
+
+- Suivi des comptes dans Mon patrimoine (alpha), corrections de lisibilité en très grand texte et de navigation.
+
+### Patch Changes
+
+- pulpe-shared@0.67.0
+
 ## 0.66.2
 
 ### Patch Changes

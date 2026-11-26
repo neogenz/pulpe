@@ -1,5 +1,112 @@
 [
   {
+    "version": "0.67.0",
+    "iosVersion": "1.14.2",
+    "date": "2026-11-26",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.67.0",
+    "platforms": ["web", "ios", "android"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Saisie lisible en très grand texte",
+          "description": "Sur iPhone, avec les plus grandes tailles de texte, la feuille « Nouvelle dépense » tient dans l’écran : la date passe sous son libellé au lieu de déborder."
+        },
+        {
+          "title": "Retour ferme d’abord le menu",
+          "description": "Sur Android, quand le menu ⋮ est ouvert, Retour le ferme sans quitter l’écran."
+        },
+        {
+          "title": "« Déjà pointé » lu par le lecteur d’écran",
+          "description": "Sur le web, le lecteur d’écran annonce le nom de l’interrupteur « Déjà pointé » quand tu ajoutes une prévision ou que tu notes une dépense."
+        }
+      ],
+      "technical": [
+        {
+          "title": "Mon patrimoine avance",
+          "description": "Encore en alpha pour les testeurs : une dépense ou un revenu peut maintenant indiquer son compte, et chaque élément affiche son historique."
+        }
+      ]
+    },
+    "translations": {
+      "en": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Readable entry with very large text",
+              "description": "On iPhone, at the largest text sizes, the “New expense” sheet fits on screen: the date moves below its label instead of spilling over the edges."
+            },
+            {
+              "title": "Back closes the menu first",
+              "description": "On Android, when the ⋮ menu is open, Back closes it without leaving the screen."
+            },
+            {
+              "title": "“Already checked” read by the screen reader",
+              "description": "On the web, the screen reader announces the name of the “Already checked” switch when you add a planned item or log an expense."
+            }
+          ],
+          "technical": [
+            {
+              "title": "My net worth moves forward",
+              "description": "Still in alpha for testers: an expense or an income can now name its account, and each item shows its history."
+            }
+          ]
+        }
+      },
+      "de": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Erfassung mit sehr grosser Schrift lesbar",
+              "description": "Auf dem iPhone passt das Blatt «Neue Ausgabe» bei den grössten Schriftgrössen auf den Bildschirm: Das Datum rückt unter seine Beschriftung, statt über den Rand hinauszuragen."
+            },
+            {
+              "title": "Zurück schliesst zuerst das Menü",
+              "description": "Auf Android schliesst Zurück das geöffnete Menü ⋮, ohne den Bildschirm zu verlassen."
+            },
+            {
+              "title": "«Schon abgehakt» vom Screenreader vorgelesen",
+              "description": "Im Web nennt der Screenreader den Namen des Schalters «Schon abgehakt», wenn du einen Planposten hinzufügst oder eine Ausgabe erfasst."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Mein Vermögen geht voran",
+              "description": "Noch in der Alpha für Testerinnen und Tester: Eine Ausgabe oder ein Einkommen kann jetzt ihr Konto angeben, und jedes Element zeigt seinen Verlauf."
+            }
+          ]
+        }
+      },
+      "it": {
+        "changes": {
+          "features": [],
+          "fixes": [
+            {
+              "title": "Inserimento leggibile con testo molto grande",
+              "description": "Su iPhone, con le dimensioni di testo più grandi, il foglio «Nuova spesa» sta nello schermo: la data passa sotto la sua etichetta invece di uscire dai bordi."
+            },
+            {
+              "title": "Indietro chiude prima il menu",
+              "description": "Su Android, quando il menu ⋮ è aperto, Indietro lo chiude senza lasciare la schermata."
+            },
+            {
+              "title": "«Già spuntato» letto dallo screen reader",
+              "description": "Sul web, lo screen reader annuncia il nome dell’interruttore «Già spuntato» quando aggiungi una previsione o registri una spesa."
+            }
+          ],
+          "technical": [
+            {
+              "title": "Il mio patrimonio va avanti",
+              "description": "Ancora in alpha per i tester: una spesa o un’entrata ora può indicare il suo conto, e ogni elemento mostra la sua cronologia."
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "version": "0.66.0",
     "iosVersion": "1.14.2",
     "date": "2026-11-22",
